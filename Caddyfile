@@ -1,0 +1,173 @@
+# ============================================================================
+# The Club Dashboard - Caddy Reverse Proxy Configuration
+# ============================================================================
+# 
+# This Caddyfile configures Caddy as a reverse proxy for The Club dashboard.
+# It handles SSL termination, routing, and security headers.
+#
+# IMPORTANT: Replace 'localhost' with your actual domain for production use.
+#
+# For more information, see: docs/NAS_INTEGRATION.md
+# ============================================================================
+
+# Main site configuration
+# Change 'localhost' to your domain (e.g., dashboard.yourdomain.com)
+localhost {
+
+    # ========================================================================
+    # CORE SERVICES (Order matters - most specific routes first)
+    # ========================================================================
+
+    # Go/HTMX Test Server - Custom applications and APIs
+    # Handles dynamic content and custom functionality
+    handle /test* {
+        reverse_proxy go-test-server:8080
+    }
+
+    # System health check endpoint
+    # Returns 200 OK for monitoring and load balancer health checks
+    handle /health {
+        respond "OK" 200
+    }
+
+    # ========================================================================
+    # SYNOLOGY NAS SERVICES INTEGRATION (PLANNED FUTURE ENHANCEMENTS)
+    # ========================================================================
+    # 
+    # The following routes are planned for future implementation when
+    # Synology NAS services are set up and configured.
+    #
+    # Uncomment and configure these sections when ready:
+    # Replace 'synology.local' with your NAS IP address or hostname.
+    # 
+    # Common Synology service ports:
+    # - DSM (Admin): 5000 (HTTP) / 5001 (HTTPS)
+    # - Jellyfin: 8096 (runs on NAS)
+    # - Copyparty: 8000 (file browser, runs on NAS)
+    # - RetroArch: 8010 (game emulation server)
+    #
+
+    # FUTURE: Media Services - Jellyfin Media Server (runs on Synology NAS)
+    # handle /media* {
+    #     reverse_proxy synology.local:8096
+    # }
+
+    # FUTURE: File Management - Copyparty File Browser (runs on Synology NAS)
+    # handle /drive* {
+    #     reverse_proxy synology.local:8000
+    # }
+
+    # FUTURE: Gaming - RetroArch Web Server for game emulation
+    # handle /arcade* {
+    #     reverse_proxy synology.local:8010
+    # }
+
+    # FUTURE: Synology DSM Admin Interface (optional)
+    # handle /dsm* {
+    #     reverse_proxy synology.local:5001
+    # }
+
+    # FUTURE: Additional NAS services (configure as needed)
+    # handle /photos* {
+    #     reverse_proxy synology.local:2342    # PhotoPrism Gallery
+    # }
+    # handle /portainer* {
+    #     reverse_proxy synology.local:9000    # Docker Management
+    # }
+    # handle /grafana* {
+    #     reverse_proxy synology.local:3000    # Monitoring Dashboard
+    # }
+
+    # ========================================================================
+    # DEFAULT ROUTE - Homer Dashboard
+    # ========================================================================
+
+    # Homer Dashboard - Main homepage with service links
+    # This must be last to catch all remaining routes
+    handle {
+        reverse_proxy homer:8080
+    }
+
+    # ========================================================================
+    # SECURITY CONFIGURATION
+    # ========================================================================
+
+    # Security headers for enhanced protection
+    header {
+        # HTTP Strict Transport Security - Forces HTTPS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Prevent MIME type sniffing attacks
+        X-Content-Type-Options nosniff
+
+        # Clickjacking protection (allow same origin for iframes)
+        X-Frame-Options SAMEORIGIN
+
+        # XSS protection (legacy browsers)
+        X-XSS-Protection "1; mode=block"
+
+        # Referrer policy for privacy
+        Referrer-Policy strict-origin-when-cross-origin
+
+        # Content Security Policy (basic)
+        # Uncomment and customize as needed:
+        # Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' unpkg.com; style-src 'self' 'unsafe-inline'"
+    }
+
+    # ========================================================================
+    # LOGGING CONFIGURATION
+    # ========================================================================
+
+    # Access logging in JSON format for easy parsing
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+        level INFO
+    }
+
+    # ========================================================================
+    # PERFORMANCE OPTIMIZATION
+    # ========================================================================
+
+    # Enable compression for better performance
+    encode {
+        gzip 6
+        zstd
+    }
+
+    # Cache static assets
+    @static {
+        path *.css *.js *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static {
+        Cache-Control "public, max-age=31536000, immutable"
+    }
+}
+
+# ============================================================================
+# ADDITIONAL CONFIGURATION EXAMPLES
+# ============================================================================
+
+# Production domain configuration example:
+# dashboard.yourdomain.com {
+#     # All the same configuration as above
+#     # Caddy will automatically obtain SSL certificates via Let's Encrypt
+# }
+
+# Multiple domain configuration:
+# *.yourdomain.com {
+#     # Handle multiple subdomains
+#     @jellyfin host jellyfin.yourdomain.com
+#     handle @jellyfin {
+#         reverse_proxy nas.local:8096
+#     }
+#     
+#     @photos host photos.yourdomain.com  
+#     handle @photos {
+#         reverse_proxy nas.local:2342
+#     }
+# }

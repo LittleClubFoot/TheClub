@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Development files
+.air.toml
+Makefile
+docker-compose*.yml
+
+# Build artifacts
+bin/
+tmp/
+*.test
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Application data (will be mounted as volumes)
+data/
+certs/
+secrets/
+config/config.yml
+
+# Logs
+*.log

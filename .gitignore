@@ -1,0 +1,94 @@
+# ============================================================================
+# The Club Dashboard - Git Ignore Rules
+# ============================================================================
+
+# Go build artifacts
+bin/
+tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+main
+coverage.out
+
+# Editor and IDE files
+*.swp
+*.swo
+*~
+.DS_Store
+.vscode/
+.idea/
+*.sublime-*
+
+# Development tools
+go.work
+go.work.sum
+
+# ============================================================================
+# APPLICATION RUNTIME FILES (not version controlled)
+# ============================================================================
+
+# Homer runtime assets (if any custom icons are added)
+assets/custom/
+
+# Application logs
+logs/*.log
+logs/*.json
+
+# Build artifacts
+build-errors.log
+
+# ============================================================================
+# SENSITIVE DATA (never commit these)
+# ============================================================================
+
+# TLS certificates and keys
+certs/*.pem
+certs/*.key
+certs/*.crt
+*.p12
+*.pfx
+
+# Secrets and passwords
+secrets/
+*.secret
+*.key
+.env
+.env.local
+
+# Database files
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================================
+# DOCKER AND DEPLOYMENT
+# ============================================================================
+
+# Docker volumes (created at runtime)
+caddy_data/
+caddy_config/
+
+# Temporary Docker files
+.dockerignore.tmp
+
+# ============================================================================
+# BACKUP AND TEMPORARY FILES
+# ============================================================================
+
+# Backup files
+*.bak
+*.backup
+*.orig
+backup-*
+*-backup-*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

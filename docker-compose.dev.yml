@@ -1,0 +1,165 @@
+# ============================================================================
+# The Club Dashboard - Development Environment
+# ============================================================================
+#
+# This Docker Compose file sets up The Club dashboard for development.
+# It includes live reload capabilities and development-friendly configurations.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up
+#   make docker-dev
+#
+# Services:
+#   - Caddy: Reverse proxy with automatic SSL (ports 80/443)
+#   - Homer: Static dashboard homepage (port 8080)
+#   - Go Server: Custom HTMX applications (port 8082)
+#
+# ============================================================================
+
+services:
+  # ========================================================================
+  # CADDY REVERSE PROXY
+  # ========================================================================
+  # 
+  # Caddy serves as the main entry point, handling SSL termination,
+  # routing, and security headers. All external traffic goes through Caddy.
+  #
+  caddy:
+    image: caddy:2-alpine
+    container_name: theclub-caddy-dev
+    
+    # Expose HTTP and HTTPS ports
+    ports:
+      - "80:80"     # HTTP (redirects to HTTPS)
+      - "443:443"   # HTTPS (main entry point)
+    
+    # Mount configuration and data
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro  # Proxy configuration
+      - caddy_data:/data                      # SSL certificates and data
+      - caddy_config:/config                  # Caddy configuration cache
+      - ./logs:/var/log/caddy                 # Access logs
+    
+    # Connect to internal network
+    networks:
+      - club-network
+    
+    # Always restart unless manually stopped
+    restart: unless-stopped
+    
+    # Wait for backend services to be ready
+    depends_on:
+      - homer
+      - go-test-server
+
+  # ========================================================================
+  # HOMER DASHBOARD
+  # ========================================================================
+  #
+  # Homer provides the main dashboard homepage with service links.
+  # It's a static site generator that creates a beautiful service directory.
+  #
+  homer:
+    image: b4bz/homer:latest
+    container_name: theclub-homer-dev
+    
+    # Expose port for direct access (development only)
+    ports:
+      - "8080:8080"
+    
+    # Mount configuration and assets
+    volumes:
+      # Mount the entire homer config directory to assets
+      - ./assets:/www/assets:ro
+    
+    # Environment configuration
+    environment:
+      # Disable asset initialization (we provide our own config)
+      - INIT_ASSETS=0
+    
+    # Connect to internal network
+    networks:
+      - club-network
+    
+    # Always restart unless manually stopped
+    restart: unless-stopped
+
+  # ========================================================================
+  # GO/HTMX TEST SERVER
+  # ========================================================================
+  #
+  # Custom Go server providing HTMX applications and APIs.
+  # Built from source with live reload for development.
+  #
+  go-test-server:
+    # Build from local Dockerfile (development target)
+    build:
+      context: .
+      target: development
+    
+    container_name: theclub-go-server-dev
+    
+    # Expose port for direct access (development only)
+    ports:
+      - "8082:8080"
+    
+    # Mount source code for live reload
+    volumes:
+      - .:/app              # Source code
+      - /app/tmp            # Exclude tmp directory from sync
+    
+    # Set working directory
+    working_dir: /app
+    
+    # Connect to internal network
+    networks:
+      - club-network
+    
+    # Always restart unless manually stopped
+    restart: unless-stopped
+
+# ============================================================================
+# NAS SERVICES INTEGRATION
+# ============================================================================
+#
+# File services are provided by your NAS (Synology, TrueNAS, etc.)
+# Configure your NAS services separately and update:
+#   1. Caddyfile - Add reverse proxy routes
+#   2. config/homer.yml - Add service links
+#
+# Common NAS services:
+#   - Jellyfin (Media): Port 8096
+#   - PhotoPrism (Photos): Port 2342  
+#   - Nextcloud (Files): Port 8080
+#   - Portainer (Docker): Port 9000
+#   - Grafana (Monitoring): Port 3000
+#
+# Example integration in Caddyfile:
+#   handle /jellyfin* {
+#       reverse_proxy nas.local:8096
+#   }
+#
+# ============================================================================
+
+# ========================================================================
+# NETWORKING
+# ========================================================================
+
+networks:
+  # Internal network for service communication
+  club-network:
+    driver: bridge
+    name: theclub-dev-network
+
+# ========================================================================
+# PERSISTENT STORAGE
+# ========================================================================
+
+volumes:
+  # Caddy data (SSL certificates, cache)
+  caddy_data:
+    name: theclub-caddy-data-dev
+  
+  # Caddy configuration cache
+  caddy_config:
+    name: theclub-caddy-config-dev
