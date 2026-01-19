@@ -1,0 +1,29 @@
+# ============================================================================
+# Grafana Dashboard Provisioning
+# ============================================================================
+# Automatically loads dashboards from the dashboards directory
+#
+# To add dashboards:
+#   1. Import from grafana.com in the UI
+#   2. Export as JSON
+#   3. Save to ./monitoring/grafana/dashboards/
+#
+# Recommended community dashboards:
+#   - Node Exporter Full: https://grafana.com/grafana/dashboards/1860
+#   - Docker & Host: https://grafana.com/grafana/dashboards/893
+#   - Caddy: https://grafana.com/grafana/dashboards/14280
+# ============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: 'Default'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true
