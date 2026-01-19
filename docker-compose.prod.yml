@@ -5,6 +5,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "2019:2019"  # Metrics endpoint for Prometheus
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -19,6 +20,15 @@ services:
     # Security options
     security_opt:
       - no-new-privileges:true
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
 
   # Homer dashboard (homepage)
   homer:
@@ -32,6 +42,15 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 32M
+          cpus: '0.1'
 
   # NOTE: File services provided by separate NAS deployment
   # Configure your NAS services and update Caddy routing accordingly
