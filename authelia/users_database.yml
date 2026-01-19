@@ -1,0 +1,29 @@
+# ============================================================================
+# Authelia Users Database
+# ============================================================================
+# Simple file-based user database
+#
+# To generate password hash:
+#   docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'yourpassword'
+#
+# Replace the hash below with your generated hash
+# ============================================================================
+
+users:
+  # Example user - CHANGE THIS!
+  admin:
+    displayname: "Admin User"
+    # Password: 'changeme' - CHANGE THIS IN PRODUCTION!
+    password: "$argon2id$v=19$m=65536,t=1,p=8$VE5aWXNiM3dOQ2VRR0VFRg$HqGqLY7EML6aPvS9KPJ0XNwqKB3F5yPOA2OvnxXYl1E"
+    email: admin@theclub.local
+    groups:
+      - admins
+      - users
+
+# Add more users as needed:
+#  username:
+#    displayname: "Display Name"
+#    password: "$argon2id$..."
+#    email: user@theclub.local
+#    groups:
+#      - users

@@ -1,0 +1,126 @@
+# ============================================================================
+# The Club - Security Stack (Phase 2)
+# ============================================================================
+# WireGuard VPN and Authelia SSO for secure remote access
+#
+# Usage:
+#   docker compose -f docker-compose.security.yml up -d
+#
+# Before starting:
+#   1. Create ./authelia directory with configuration
+#   2. Update SERVERURL in WireGuard environment variables
+#   3. Configure Caddy to use Authelia forward_auth
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ========================================================================
+  # WireGuard VPN - Secure Remote Access
+  # ========================================================================
+  # Community standard for VPN access (replaces OpenVPN)
+  # Fast, simple configuration, modern cryptography
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      # IMPORTANT: Update these values for your setup
+      - SERVERURL=auto  # Change to your domain or IP
+      - SERVERPORT=51820
+      - PEERS=3  # Number of client configs to generate
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.13.13.0
+      - ALLOWEDIPS=0.0.0.0/0
+    volumes:
+      - wireguard-config:/config
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp"
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv4.ip_forward=1
+    networks:
+      - club-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  # ========================================================================
+  # Redis - Session Store for Authelia
+  # ========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: authelia-redis
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --save ""
+    volumes:
+      - redis-data:/data
+    networks:
+      - club-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # ========================================================================
+  # Authelia - Single Sign-On (SSO) Authentication
+  # ========================================================================
+  # Lightweight SSO solution - only 30MB RAM
+  # Protects your services with centralized authentication
+  authelia:
+    image: authelia/authelia:latest
+    container_name: authelia
+    volumes:
+      - ./authelia:/config
+    networks:
+      - club-network
+    environment:
+      - TZ=America/New_York
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 32M
+          cpus: '0.1'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9091/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  club-network:
+    external: true
+    name: theclub_club-network
+
+volumes:
+  wireguard-config:
+    name: wireguard-config
+  redis-data:
+    name: redis-data
