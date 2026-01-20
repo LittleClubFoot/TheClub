@@ -45,6 +45,7 @@ help:
 	@echo "  stack-security        Deploy WireGuard + Authelia SSO"
 	@echo "  stack-observability   Deploy Prometheus + Grafana"
 	@echo "  stack-automation      Deploy Kopia + Watchtower + Dockge"
+	@echo "  stack-privacy         Deploy Pi-hole + Unbound + Searxng + FreshRSS"
 	@echo "  stack-all             Deploy all enhancement stacks"
 	@echo "  stack-stop            Stop all enhancement stacks"
 	@echo ""
@@ -243,8 +244,20 @@ stack-automation:
 	@echo "   Dockge: https://localhost/dockge"
 	@echo "   Kopia: https://localhost/backup"
 
+# Deploy privacy infrastructure stack (Pi-hole, Unbound, Searxng, FreshRSS)
+stack-privacy:
+	@echo "🔒 Deploying privacy infrastructure stack..."
+	docker compose -f docker-compose.privacy.yml up -d
+	@echo "✅ Privacy infrastructure deployed"
+	@echo "   Pi-hole:  https://localhost:8053/admin"
+	@echo "   Searxng:  https://search.pochita.synology.me"
+	@echo "   FreshRSS: https://rss.pochita.synology.me"
+	@echo ""
+	@echo "⚠️  IMPORTANT: Configure devices to use Pi-hole as DNS!"
+	@echo "   Set DNS to your Club server IP for network-wide blocking"
+
 # Deploy all enhancement stacks
-stack-all: stack-monitoring stack-security stack-observability stack-automation
+stack-all: stack-monitoring stack-security stack-observability stack-automation stack-privacy
 	@echo ""
 	@echo "🎉 All enhancement stacks deployed!"
 	@echo ""
@@ -255,6 +268,9 @@ stack-all: stack-monitoring stack-security stack-observability stack-automation
 	@echo "   Auth:       https://localhost/auth"
 	@echo "   Management: https://localhost/dockge"
 	@echo "   Backup:     https://localhost/backup"
+	@echo "   Pi-hole:    https://localhost:8053/admin"
+	@echo "   Search:     https://search.pochita.synology.me"
+	@echo "   RSS:        https://rss.pochita.synology.me"
 
 # Stop all enhancement stacks
 stack-stop:
@@ -263,6 +279,7 @@ stack-stop:
 	@docker compose -f docker-compose.security.yml down 2>/dev/null || true
 	@docker compose -f docker-compose.observability.yml down 2>/dev/null || true
 	@docker compose -f docker-compose.automation.yml down 2>/dev/null || true
+	@docker compose -f docker-compose.privacy.yml down 2>/dev/null || true
 	@echo "✅ All enhancement stacks stopped"
 
 # Run configuration backup
@@ -272,4 +289,4 @@ backup:
 	@echo "✅ Backup complete"
 
 # Update Makefile help
-.PHONY: stack-monitoring stack-security stack-observability stack-automation stack-all stack-stop backup
+.PHONY: stack-monitoring stack-security stack-observability stack-automation stack-privacy stack-all stack-stop backup
