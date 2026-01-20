@@ -222,6 +222,59 @@ nas.pochita.synology.me {
     }
 }
 
+# Vaultwarden - Self-hosted password manager (on Synology)
+vault.pochita.synology.me {
+    # Note: Vaultwarden has its own authentication + 2FA
+    # Adding Authelia can break browser extensions and mobile apps
+    # Recommended: Use Vaultwarden's built-in auth only
+    #
+    # Optional: Uncomment for SSO layer (web vault only)
+    # forward_auth authelia:9091 {
+    #     uri /api/verify?rd=https://auth.pochita.synology.me
+    #     copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    # }
+
+    reverse_proxy [SYNOLOGY_IP]:8100 {
+        # Required headers for Vaultwarden
+        header_up Host {upstream_hostport}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+
+        # WebSocket support (for live password sync)
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+
+        # Vaultwarden-specific CSP (allows WebSocket connections)
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:; frame-ancestors 'self'"
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/vault-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+
+    # Compression
+    encode {
+        gzip 6
+        zstd
+    }
+}
+
 # ============================================================================
 # OPTIONAL ADDITIONAL SERVICES
 # ============================================================================
