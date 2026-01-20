@@ -1,0 +1,274 @@
+# ============================================================================
+# The Club - Privacy Infrastructure Stack
+# ============================================================================
+# Privacy-focused services for network-wide protection and private services
+#
+# Services:
+#   - Pi-hole: Network-wide ad and tracker blocking
+#   - Unbound: Private recursive DNS resolver (no third-party logging)
+#   - Searxng: Privacy-respecting meta-search engine
+#   - FreshRSS: Self-hosted RSS reader (no tracking)
+#
+# Usage:
+#   docker compose -f docker-compose.privacy.yml up -d
+#
+# Access:
+#   Pi-hole:  http://localhost:8053/admin (or https://dns.pochita.synology.me)
+#   Searxng:  https://search.pochita.synology.me
+#   FreshRSS: https://rss.pochita.synology.me
+#
+# Privacy Benefits:
+#   - Block ads/trackers at DNS level (all devices protected)
+#   - No DNS queries logged to third parties (Google, Cloudflare, ISP)
+#   - Private search without profiling or tracking
+#   - Read RSS feeds without exposing browsing to feed providers
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ========================================================================
+  # Unbound - Private Recursive DNS Resolver
+  # ========================================================================
+  # Queries DNS root servers directly, no third-party DNS providers
+  # Privacy benefit: Your DNS queries never leave your network
+  unbound:
+    image: mvance/unbound:latest
+    container_name: unbound
+    hostname: unbound
+    ports:
+      - "5335:53/tcp"
+      - "5335:53/udp"
+    volumes:
+      - ./privacy/unbound:/opt/unbound/etc/unbound
+    networks:
+      - club-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    healthcheck:
+      test: ["CMD", "drill", "@127.0.0.1", "cloudflare.com"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ========================================================================
+  # Pi-hole - Network-Wide Ad and Tracker Blocking
+  # ========================================================================
+  # DNS-level blocking of ads, trackers, and malware domains
+  # Privacy benefit: Blocks tracking before it reaches your devices
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    hostname: pihole
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8053:80/tcp"  # Web interface
+    environment:
+      - TZ=America/New_York
+      - WEBPASSWORD=changeme  # CHANGE THIS!
+      - FTLCONF_LOCAL_IPV4=192.168.1.100  # Change to your Club server IP
+      - PIHOLE_DNS_=172.18.0.2#5335  # Point to Unbound (adjust IP if needed)
+      - DNSSEC=true
+      - DNSMASQ_LISTENING=all
+      # Privacy settings
+      - QUERY_LOGGING=true  # Can disable for more privacy
+      - PIHOLE_DOMAIN=lan
+    volumes:
+      - pihole-etc:/etc/pihole
+      - pihole-dnsmasq:/etc/dnsmasq.d
+    networks:
+      - club-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      unbound:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "dig", "+short", "+norecurse", "+retry=0", "@127.0.0.1", "pi.hole"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ========================================================================
+  # Searxng - Privacy-Respecting Meta-Search Engine
+  # ========================================================================
+  # Aggregates results from multiple search engines without tracking
+  # Privacy benefit: Search without Google/Bing profiling you
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    hostname: searxng
+    volumes:
+      - ./privacy/searxng:/etc/searxng:rw
+    networks:
+      - club-network
+    environment:
+      - SEARXNG_BASE_URL=https://search.pochita.synology.me
+      - SEARXNG_SECRET=changeme_to_random_secret  # CHANGE THIS!
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ========================================================================
+  # FreshRSS - Self-Hosted RSS Feed Reader
+  # ========================================================================
+  # Read news and blogs without visiting tracking-heavy websites
+  # Privacy benefit: No third-party RSS services tracking what you read
+  freshrss:
+    image: freshrss/freshrss:latest
+    container_name: freshrss
+    hostname: freshrss
+    volumes:
+      - freshrss-data:/var/www/FreshRSS/data
+      - freshrss-extensions:/var/www/FreshRSS/extensions
+    networks:
+      - club-network
+    environment:
+      - TZ=America/New_York
+      - CRON_MIN=*/15  # Update feeds every 15 minutes
+      - FRESHRSS_BASE_URL=https://rss.pochita.synology.me
+      - FRESHRSS_ENV=production
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ========================================================================
+  # Redis - Cache for Searxng (Optional but Recommended)
+  # ========================================================================
+  # Improves Searxng performance without compromising privacy
+  searxng-redis:
+    image: redis:7-alpine
+    container_name: searxng-redis
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --save ""
+    volumes:
+      - searxng-redis-data:/data
+    networks:
+      - club-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+networks:
+  club-network:
+    external: true
+    name: theclub_club-network
+
+volumes:
+  pihole-etc:
+    name: pihole-etc
+  pihole-dnsmasq:
+    name: pihole-dnsmasq
+  freshrss-data:
+    name: freshrss-data
+  freshrss-extensions:
+    name: freshrss-extensions
+  searxng-redis-data:
+    name: searxng-redis-data
+
+# ============================================================================
+# DEPLOYMENT NOTES
+# ============================================================================
+#
+# 1. CHANGE DEFAULT PASSWORDS:
+#    - Pi-hole: WEBPASSWORD in environment
+#    - Searxng: SEARXNG_SECRET in environment
+#    - FreshRSS: Set during first login
+#
+# 2. UPDATE NETWORK CONFIGURATION:
+#    - Set FTLCONF_LOCAL_IPV4 to your Club server's IP
+#    - Adjust Unbound IP in PIHOLE_DNS_ if needed
+#
+# 3. CONFIGURE YOUR DEVICES:
+#    Option A: Change router DNS to point to Pi-hole IP
+#    Option B: Manually set DNS on each device to Pi-hole IP
+#    Option C: Use DHCP server to automatically assign Pi-hole as DNS
+#
+# 4. PRIVACY CONSIDERATIONS:
+#    - Pi-hole logs queries by default (for statistics)
+#    - Set QUERY_LOGGING=false for maximum privacy (loses stats)
+#    - Unbound caches but doesn't log queries
+#    - Searxng: Enable "preferences > privacy" options
+#    - FreshRSS: All data stays on your server
+#
+# 5. BLOCKLIST RECOMMENDATIONS:
+#    Pi-hole comes with default blocklists. Consider adding:
+#    - https://github.com/anudeepND/blacklist (Facebook, Amazon trackers)
+#    - https://github.com/mmotti/pihole-regex (regex filters)
+#    - https://firebog.net/ (curated lists)
+#
+# 6. SEARXNG CONFIGURATION:
+#    Edit ./privacy/searxng/settings.yml to:
+#    - Enable/disable specific search engines
+#    - Configure privacy settings
+#    - Customize appearance
+#
+# 7. NETWORK PERFORMANCE:
+#    - First DNS queries will be slower (recursive resolution)
+#    - Subsequent queries are cached (faster)
+#    - Pi-hole adds ~1-5ms latency (worth it for privacy)
+#
+# 8. MONITORING:
+#    - Pi-hole: Web interface shows blocking statistics
+#    - Add Pi-hole to Uptime Kuma for monitoring
+#    - Monitor DNS query latency in Grafana (if desired)
+#
+# ============================================================================

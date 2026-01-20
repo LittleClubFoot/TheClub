@@ -1,0 +1,238 @@
+# ============================================================================
+# Searxng Configuration - Privacy-Respecting Search Engine
+# ============================================================================
+# Self-hosted meta-search engine that aggregates results from multiple
+# sources without tracking or profiling users
+# ============================================================================
+
+general:
+  # Instance name shown in interface
+  instance_name: "The Club Search"
+
+  # Privacy-focused settings
+  contact_url: false  # Don't expose contact info publicly
+  enable_metrics: false  # Don't collect usage metrics
+
+  # Debug mode (set to false in production)
+  debug: false
+
+search:
+  # Safe search filter (0=off, 1=moderate, 2=strict)
+  safe_search: 0
+
+  # Autocomplete suggestions (privacy: use local only)
+  autocomplete: ""  # Empty = disabled for privacy
+
+  # Default search language
+  default_lang: "en"
+
+  # Number of results per page
+  max_page: 0  # 0 = unlimited
+
+  # Formats available
+  formats:
+    - html
+    - json
+
+server:
+  # Port (internal to container)
+  port: 8080
+  bind_address: "0.0.0.0"
+
+  # Secret key (change this!)
+  secret_key: "changeme_to_random_secret_from_docker_compose"
+
+  # Base URL
+  base_url: "https://search.pochita.synology.me"
+
+  # Image proxy for privacy (don't load images from search engines directly)
+  image_proxy: true
+
+  # HTTP settings
+  http_protocol_version: "1.1"
+  method: "POST"  # Use POST for search queries (more privacy)
+
+# ============================================================================
+# Search Engine Configuration
+# ============================================================================
+# Enable/disable specific search engines
+# Disabled engines won't be queried (improves privacy and speed)
+
+engines:
+  # General search engines
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    disabled: false
+
+  - name: brave
+    engine: brave
+    shortcut: br
+    disabled: false
+
+  - name: startpage
+    engine: startpage
+    shortcut: sp
+    disabled: false
+
+  - name: qwant
+    engine: qwant
+    shortcut: qw
+    disabled: false
+
+  # Disable Google, Bing for maximum privacy
+  # (they track, even when queried by Searxng)
+  - name: google
+    engine: google
+    shortcut: go
+    disabled: true  # Disable for privacy
+
+  - name: bing
+    engine: bing
+    shortcut: bi
+    disabled: true  # Disable for privacy
+
+  # Specialized search engines
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wp
+    disabled: false
+
+  - name: wikidata
+    engine: wikidata
+    shortcut: wd
+    disabled: false
+
+  - name: github
+    engine: github
+    shortcut: gh
+    disabled: false
+
+  - name: stackoverflow
+    engine: stackoverflow
+    shortcut: so
+    disabled: false
+
+  # Privacy-focused alternatives
+  - name: searx
+    engine: searx
+    shortcut: sx
+    disabled: false
+    base_url: https://searx.be
+
+# ============================================================================
+# User Interface Settings
+# ============================================================================
+
+ui:
+  # Default theme (simple, oscar, pix-art, logicodev, etc.)
+  default_theme: simple
+
+  # Default locale
+  default_locale: en
+
+  # Center alignment
+  center_alignment: false
+
+  # Show advanced settings
+  advanced_search: true
+
+  # Query in title
+  query_in_title: true
+
+  # Infinite scroll
+  infinite_scroll: false
+
+  # Results on new tab
+  results_on_new_tab: false
+
+# ============================================================================
+# Privacy Settings
+# ============================================================================
+
+outgoing:
+  # Request timeout (seconds)
+  request_timeout: 3.0
+
+  # Max request timeout
+  max_request_timeout: 15.0
+
+  # Use HTTP/2
+  enable_http2: true
+
+  # Verify SSL certificates
+  verify: true
+
+  # Maximum redirects
+  max_redirects: 5
+
+  # Retry failed requests
+  retries: 1
+
+  # Pool connections (improves performance without compromising privacy)
+  pool_connections: 100
+  pool_maxsize: 20
+
+  # User agent (randomize for privacy)
+  useragent_suffix: ""
+
+  # Proxies (optional - use if you want additional anonymity)
+  # proxies:
+  #   http: http://proxy:port
+  #   https: http://proxy:port
+
+# ============================================================================
+# Redis Configuration (for caching)
+# ============================================================================
+
+redis:
+  url: redis://searxng-redis:6379/0
+
+# ============================================================================
+# Privacy-Enhancing Features
+# ============================================================================
+
+# Hostname replace (optional - replace tracking domains)
+# hostname_replace:
+#   "(.*\\.)?youtube\\.com$": "invidious.example.com"
+#   "(.*\\.)?youtu\\.be$": "invidious.example.com"
+#   "(.*\\.)?reddit\\.com$": "teddit.example.com"
+#   "(.*\\.)?redd\\.it$": "teddit.example.com"
+#   "(.*\\.)?twitter\\.com$": "nitter.example.com"
+
+# ============================================================================
+# Limiter (Rate limiting for public instances)
+# ============================================================================
+# For private use, can be disabled
+
+limiter: false
+
+# ============================================================================
+# Privacy Notes
+# ============================================================================
+#
+# This configuration maximizes privacy by:
+# 1. Disabling metrics collection
+# 2. Using POST method for searches (not logged in URLs)
+# 3. Image proxy (don't load images directly from search engines)
+# 4. Disabled tracking engines (Google, Bing)
+# 5. Using privacy-focused engines (DuckDuckGo, Brave, Startpage)
+# 6. No autocomplete (prevents query leakage)
+# 7. Redis caching (reduces external queries)
+#
+# Search Engine Privacy Levels:
+# - Most Private: Searx instances, DuckDuckGo, Brave
+# - Moderate: Qwant, Startpage
+# - Least Private: Google, Bing (disabled by default)
+#
+# You can re-enable Google/Bing if you need them, but remember:
+# - Even through Searxng, they may track based on query patterns
+# - Your IP is still somewhat protected (queries come from your server)
+# - It's better than using them directly
+#
+# For maximum privacy:
+# - Keep Google and Bing disabled
+# - Use DuckDuckGo, Brave, and Startpage
+# - Consider using Tor for additional anonymity (configure in outgoing.proxies)
+#
+# ============================================================================
