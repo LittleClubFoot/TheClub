@@ -1,0 +1,188 @@
+# ============================================================================
+# The Club - Automation Stack (Phase 4)
+# ============================================================================
+# Automated backups, updates, and management tools
+#
+# Usage:
+#   docker compose -f docker-compose.automation.yml up -d
+#
+# Services:
+#   - Kopia: Automated encrypted backups
+#   - Watchtower: Automatic container updates
+#   - Dockge: Docker Compose stack management
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ========================================================================
+  # Kopia - Automated Backup Solution
+  # ========================================================================
+  # Encrypted, deduplicated, incremental backups
+  # Modern alternative to Duplicati/Restic
+  kopia:
+    image: kopia/kopia:latest
+    container_name: kopia
+    hostname: theclub-kopia
+    command: server start --insecure --address=0.0.0.0:51515
+    volumes:
+      - kopia-config:/app/config
+      - kopia-cache:/app/cache
+      - kopia-logs:/app/logs
+      # Backup sources
+      - ./:/data/theclub:ro
+      - caddy_data:/data/caddy_data:ro
+      - caddy_config:/data/caddy_config:ro
+      - uptime-kuma-data:/data/uptime-kuma-data:ro
+      - grafana-data:/data/grafana-data:ro
+      - prometheus-data:/data/prometheus-data:ro
+      # Backup destination (change to your backup location)
+      - /mnt/backup:/repository
+    environment:
+      - KOPIA_PASSWORD=changeme_secure_password  # CHANGE IN PRODUCTION!
+      - USER=admin
+      - KOPIA_PERSIST_CREDENTIALS_ON_CONNECT=true
+    networks:
+      - club-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "kopia", "repository", "status"]
+      interval: 5m
+      timeout: 30s
+      retries: 3
+      start_period: 1m
+
+  # ========================================================================
+  # Watchtower - Automatic Container Updates
+  # ========================================================================
+  # Monitors Docker Hub and updates containers automatically
+  # Community standard for keeping images fresh
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true  # Remove old images
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_REVIVE_STOPPED=false
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *  # 4 AM daily
+      - WATCHTOWER_ROLLING_RESTART=true
+      - WATCHTOWER_TIMEOUT=30s
+      - WATCHTOWER_NO_STARTUP_MESSAGE=false
+      - TZ=America/New_York
+      # Notification settings (optional - configure for your needs)
+      # - WATCHTOWER_NOTIFICATIONS=email
+      # - WATCHTOWER_NOTIFICATION_EMAIL_FROM=watchtower@theclub.local
+      # - WATCHTOWER_NOTIFICATION_EMAIL_TO=admin@theclub.local
+      # - WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com
+      # - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=587
+      # - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=youruser
+      # - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=yourpassword
+    networks:
+      - club-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+
+  # ========================================================================
+  # Dockge - Docker Compose Stack Management
+  # ========================================================================
+  # Modern web UI for managing Docker Compose stacks
+  # Community favorite, created by Uptime Kuma developer
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockge-data:/app/data
+      # Stacks directory - where your compose files live
+      - /opt/stacks:/opt/stacks
+      # Also monitor the main project directory
+      - ./:/opt/stacks/theclub:ro
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    networks:
+      - club-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ========================================================================
+  # Diun - Docker Image Update Notifications (Alternative to Watchtower)
+  # ========================================================================
+  # Notifies about updates without auto-updating
+  # Use this if you prefer manual updates
+  # diun:
+  #   image: crazymax/diun:latest
+  #   container_name: diun
+  #   command: serve
+  #   volumes:
+  #     - ./diun:/data
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #   environment:
+  #     - TZ=America/New_York
+  #     - LOG_LEVEL=info
+  #     - DIUN_WATCH_WORKERS=20
+  #     - DIUN_WATCH_SCHEDULE=0 */6 * * *  # Every 6 hours
+  #     - DIUN_PROVIDERS_DOCKER=true
+  #     - DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=true
+  #   networks:
+  #     - club-network
+  #   restart: unless-stopped
+
+networks:
+  club-network:
+    external: true
+    name: theclub_club-network
+
+volumes:
+  kopia-config:
+    name: kopia-config
+  kopia-cache:
+    name: kopia-cache
+  kopia-logs:
+    name: kopia-logs
+  dockge-data:
+    name: dockge-data
+  # External volumes from other stacks
+  caddy_data:
+    external: true
+  caddy_config:
+    external: true
+  uptime-kuma-data:
+    external: true
+  grafana-data:
+    external: true
+  prometheus-data:
+    external: true
