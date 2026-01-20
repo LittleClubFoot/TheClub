@@ -1,21 +1,31 @@
-# Homer Dashboard Configuration
-title: "The Club Dashboard"
-subtitle: "Personal Home Lab"
+# ============================================================================
+# The Club Dashboard - Enhanced Homer Configuration
+# ============================================================================
+# Privacy-focused home server dashboard
+# Showcases all services: privacy, monitoring, security, and management
+# ============================================================================
+
+title: "The Club"
+subtitle: "Privacy-First Home Lab @ pochita.synology.me"
 logo: "assets/logo.png"
-icon: "fas fa-skull-crossbones"
+icon: "fas fa-shield-alt"  # Privacy-focused icon
 
 header: true
-footer: '<p>Created with <span class="has-text-danger">❤️</span> for home lab management</p>'
+footer: '<p>Built with <span class="has-text-danger">❤️</span> for Privacy & FOSS</p>'
 
-columns: "3"
+# Responsive columns (auto-adjusts based on screen size)
+columns: "auto"
 connectivityCheck: true
 
+# Theme (default, sui)
 theme: default
+
+# Color scheme - Privacy-focused dark/light themes
 colors:
   light:
-    highlight-primary: "#3367d6"
-    highlight-secondary: "#4285f4"
-    highlight-hover: "#5a95f5"
+    highlight-primary: "#667eea"  # Purple accent (privacy)
+    highlight-secondary: "#764ba2"
+    highlight-hover: "#8b5cf6"
     background: "#f5f5f5"
     card-background: "#ffffff"
     text: "#363636"
@@ -25,9 +35,9 @@ colors:
     card-shadow: rgba(0, 0, 0, 0.1)
     link-hover: "#363636"
   dark:
-    highlight-primary: "#3367d6"
-    highlight-secondary: "#4285f4"
-    highlight-hover: "#5a95f5"
+    highlight-primary: "#667eea"  # Purple accent (privacy)
+    highlight-secondary: "#764ba2"
+    highlight-hover: "#8b5cf6"
     background: "#131313"
     card-background: "#2b2b2b"
     text: "#eaeaea"
@@ -35,63 +45,230 @@ colors:
     text-title: "#fafafa"
     text-subtitle: "#f5f5f5"
     card-shadow: rgba(0, 0, 0, 0.4)
-    link-hover: "#ffdd57"
+    link-hover: "#a78bfa"
 
+# Quick links
 links:
-  - name: "GitHub"
+  - name: "GitHub Repo"
     icon: "fab fa-github"
-    url: "https://github.com/"
+    url: "https://github.com/LittleClubFoot/TheClub"
     target: "_blank"
   - name: "Documentation"
     icon: "fas fa-book"
     url: "/test/docs"
+  - name: "Privacy Guide"
+    icon: "fas fa-user-shield"
+    url: "https://www.privacytools.io"
+    target: "_blank"
+  - name: "EFF"
+    icon: "fas fa-flag"
+    url: "https://www.eff.org"
+    target: "_blank"
 
+# Service categories
 services:
-  - name: "Development"
+  # ========================================================================
+  # Privacy Infrastructure - Network-wide protection
+  # ========================================================================
+  - name: "🔒 Privacy Infrastructure"
+    icon: "fas fa-user-shield"
+    items:
+      - name: "Pi-hole DNS"
+        logo: "assets/icons/pihole.png"
+        subtitle: "Network-wide ad & tracker blocking"
+        tag: "privacy"
+        keywords: "dns ad-block privacy tracking"
+        url: "https://dns.pochita.synology.me/admin"
+        target: "_blank"
+
+      - name: "Searxng"
+        logo: "assets/icons/search.png"
+        subtitle: "Privacy-respecting meta-search"
+        tag: "privacy"
+        keywords: "search privacy anonymous"
+        url: "https://search.pochita.synology.me"
+        target: "_blank"
+
+      - name: "FreshRSS"
+        logo: "assets/icons/rss.png"
+        subtitle: "Self-hosted RSS reader"
+        tag: "privacy"
+        keywords: "rss news feeds privacy"
+        url: "https://rss.pochita.synology.me"
+        target: "_blank"
+
+  # ========================================================================
+  # Monitoring & Observability
+  # ========================================================================
+  - name: "📊 Monitoring"
+    icon: "fas fa-chart-line"
+    items:
+      - name: "Uptime Kuma"
+        logo: "assets/icons/uptime.png"
+        subtitle: "Service health & status monitoring"
+        tag: "monitor"
+        keywords: "uptime monitoring status health"
+        url: "https://status.pochita.synology.me"
+        target: "_blank"
+
+      - name: "Grafana"
+        logo: "assets/icons/grafana.png"
+        subtitle: "Metrics dashboards & visualization"
+        tag: "metrics"
+        keywords: "metrics grafana dashboard analytics"
+        url: "https://grafana.pochita.synology.me"
+        target: "_blank"
+
+  # ========================================================================
+  # Security & Authentication
+  # ========================================================================
+  - name: "🔐 Security"
+    icon: "fas fa-lock"
+    items:
+      - name: "Authelia SSO"
+        logo: "assets/icons/auth.png"
+        subtitle: "Single sign-on authentication"
+        tag: "security"
+        keywords: "authentication sso 2fa security"
+        url: "https://auth.pochita.synology.me"
+        target: "_blank"
+
+      - name: "WireGuard VPN"
+        logo: "assets/icons/vpn.png"
+        subtitle: "Secure remote access (configured on device)"
+        tag: "security"
+        keywords: "vpn wireguard remote access"
+        url: "#"
+
+  # ========================================================================
+  # Management & Automation
+  # ========================================================================
+  - name: "🛠️ Management"
+    icon: "fas fa-tools"
+    items:
+      - name: "Dockge"
+        logo: "assets/icons/docker.png"
+        subtitle: "Docker Compose stack management"
+        tag: "admin"
+        keywords: "docker compose management stacks"
+        url: "https://dockge.pochita.synology.me"
+        target: "_blank"
+
+      - name: "Kopia Backup"
+        logo: "assets/icons/backup.png"
+        subtitle: "Encrypted backup management"
+        tag: "admin"
+        keywords: "backup kopia encrypted restore"
+        url: "https://backup.pochita.synology.me"
+        target: "_blank"
+
+  # ========================================================================
+  # Media & Entertainment (Synology NAS)
+  # ========================================================================
+  - name: "🎬 Media & Files"
+    icon: "fas fa-film"
+    items:
+      - name: "Jellyfin"
+        logo: "assets/icons/jellyfin.png"
+        subtitle: "Movies, TV shows, and music"
+        tag: "media"
+        keywords: "jellyfin media streaming movies tv"
+        url: "https://media.pochita.synology.me"
+        target: "_blank"
+
+      - name: "Synology NAS"
+        logo: "assets/icons/nas.png"
+        subtitle: "Network storage & DSM admin"
+        tag: "files"
+        keywords: "synology nas dsm storage files"
+        url: "https://nas.pochita.synology.me"
+        target: "_blank"
+
+      # Uncomment when deployed
+      # - name: "File Browser"
+      #   logo: "assets/icons/files.png"
+      #   subtitle: "Copyparty file sharing"
+      #   tag: "files"
+      #   keywords: "files browser copyparty sharing"
+      #   url: "https://files.pochita.synology.me"
+      #   target: "_blank"
+
+  # ========================================================================
+  # Development & Testing
+  # ========================================================================
+  - name: "💻 Development"
     icon: "fas fa-code"
     items:
       - name: "Test Server"
         logo: "assets/icons/dev.png"
         subtitle: "Go/HTMX test application"
         tag: "dev"
-        url: "/test"
+        keywords: "development testing htmx go"
+        url: "https://pochita.synology.me/test"
         target: "_self"
+
       - name: "API Docs"
-        logo: "assets/icons/notes.png"
-        subtitle: "API documentation and testing"
+        logo: "assets/icons/api.png"
+        subtitle: "API documentation"
         tag: "api"
-        url: "/test/api"
+        keywords: "api documentation swagger"
+        url: "https://pochita.synology.me/test/api"
         target: "_self"
 
-  - name: "Synology NAS Services (Planned)"
-    icon: "fas fa-server"
-    items:
-      # TODO: Uncomment when Synology NAS services are configured
-      # - name: "Jellyfin Media"
-      #   logo: "assets/icons/tv.png"
-      #   subtitle: "Movies, TV shows, and music streaming"
-      #   tag: "media"
-      #   url: "/media"
-      #   target: "_self"
-      # - name: "File Browser"
-      #   logo: "assets/icons/pc.png"
-      #   subtitle: "Copyparty file management and sharing"
-      #   tag: "files"
-      #   url: "/drive"
-      #   target: "_self"
-      # - name: "RetroArch Arcade"
-      #   logo: "assets/icons/games.png"
-      #   subtitle: "Retro game emulation and arcade"
-      #   tag: "games"
-      #   url: "/arcade"
-      #   target: "_self"
-
-  - name: "System"
+  # ========================================================================
+  # System Information
+  # ========================================================================
+  - name: "⚙️ System"
     icon: "fas fa-cog"
     items:
       - name: "Health Check"
         logo: "assets/icons/health.png"
-        subtitle: "System health and status"
+        subtitle: "System health endpoint"
         tag: "system"
-        url: "/health"
+        keywords: "health status system check"
+        url: "https://pochita.synology.me/health"
         target: "_self"
+
+      - name: "Prometheus"
+        logo: "assets/icons/prometheus.png"
+        subtitle: "Metrics collection (internal)"
+        tag: "system"
+        keywords: "prometheus metrics collection monitoring"
+        url: "http://localhost:9090"
+        target: "_blank"
+
+# ============================================================================
+# Configuration Notes
+# ============================================================================
+#
+# Customization Guide:
+# 1. Update URLs to match your domain (currently using pochita.synology.me)
+# 2. Add custom icons to assets/icons/ directory
+# 3. Uncomment services as you deploy them
+# 4. Adjust colors in the colors section above
+# 5. Add/remove links in the links section
+#
+# Icon Sources:
+# - Font Awesome: https://fontawesome.com/icons
+# - Custom icons: Place PNG files in assets/icons/
+#
+# Service Tags:
+# - privacy: Privacy-focused services
+# - monitor: Monitoring and observability
+# - security: Security and authentication
+# - admin: Management and administration
+# - media: Media streaming and entertainment
+# - files: File management and storage
+# - dev: Development and testing
+# - system: System information and health
+#
+# Privacy First:
+# This dashboard showcases your privacy-focused infrastructure:
+# - Pi-hole blocks trackers network-wide
+# - Searxng provides private search
+# - FreshRSS enables private news reading
+# - Authelia protects sensitive services with 2FA
+# - WireGuard provides secure remote access
+# - All services self-hosted (you control the data)
+#
+# ============================================================================
