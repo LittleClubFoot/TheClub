@@ -263,6 +263,70 @@ nas.pochita.synology.me {
 # }
 
 # ============================================================================
+# PRIVACY INFRASTRUCTURE SERVICES
+# ============================================================================
+
+# Pi-hole - Network-wide ad/tracker blocking
+dns.pochita.synology.me {
+    # Optional: Protect with Authelia (or leave public for LAN access)
+    # forward_auth authelia:9091 {
+    #     uri /api/verify?rd=https://auth.pochita.synology.me
+    #     copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    # }
+
+    reverse_proxy pihole:80
+
+    log {
+        output file /var/log/caddy/dns-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# Searxng - Privacy-respecting search engine
+search.pochita.synology.me {
+    # Optional: Protect with Authelia if you want private-only access
+    # forward_auth authelia:9091 {
+    #     uri /api/verify?rd=https://auth.pochita.synology.me
+    #     copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    # }
+
+    reverse_proxy searxng:8080
+
+    log {
+        output file /var/log/caddy/search-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# FreshRSS - Self-hosted RSS reader
+rss.pochita.synology.me {
+    # Recommended: Protect with Authelia (personal reading habits are private)
+    forward_auth authelia:9091 {
+        uri /api/verify?rd=https://auth.pochita.synology.me
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy freshrss:80
+
+    log {
+        output file /var/log/caddy/rss-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# ============================================================================
 # ADDITIONAL CONFIGURATION EXAMPLES
 # ============================================================================
 
