@@ -140,6 +140,14 @@ services:
         keywords: "vpn wireguard remote access"
         url: "#"
 
+      - name: "Vaultwarden"
+        logo: "assets/icons/vault.png"
+        subtitle: "Self-hosted password manager (Synology)"
+        tag: "security"
+        keywords: "password manager vault bitwarden security passwords"
+        url: "https://vault.pochita.synology.me"
+        target: "_blank"
+
   # ========================================================================
   # Management & Automation
   # ========================================================================

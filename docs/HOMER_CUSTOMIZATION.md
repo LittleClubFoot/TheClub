@@ -30,6 +30,7 @@ This guide explains the enhanced Homer dashboard configuration for The Club, sho
 #### 🔐 Security
 - **Authelia SSO**: Single sign-on with 2FA
 - **WireGuard VPN**: Secure remote access
+- **Vaultwarden**: Self-hosted password manager (Synology)
 
 #### 🛠️ Management
 - **Dockge**: Docker Compose stack management
@@ -116,6 +117,7 @@ assets/icons/
 ├── grafana.png     # Grafana logo
 ├── auth.png        # Authelia/lock icon
 ├── vpn.png         # WireGuard/VPN icon
+├── vault.png       # Vaultwarden/password manager icon
 ├── docker.png      # Docker/Dockge logo
 ├── backup.png      # Backup/Kopia icon
 ├── jellyfin.png    # Jellyfin logo
@@ -132,6 +134,7 @@ assets/icons/
    - [Jellyfin](https://jellyfin.org/images/logo.svg)
    - [Grafana](https://grafana.com/static/assets/img/grafana_icon.svg)
    - [Prometheus](https://prometheus.io/assets/prometheus_logo.svg)
+   - [Vaultwarden](https://github.com/bitwarden/brand/blob/master/icons/icon.png) (use Bitwarden logo)
 
 2. **Icon Packs**:
    - [Font Awesome](https://fontawesome.com/) (built-in)
