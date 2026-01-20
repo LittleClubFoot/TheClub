@@ -1,0 +1,344 @@
+# ============================================================================
+# The Club - Subdomain-Based Caddyfile Configuration
+# ============================================================================
+#
+# This is an EXAMPLE configuration for subdomain-based routing with
+# pochita.synology.me DDNS.
+#
+# To use this configuration:
+# 1. Copy to Caddyfile: cp Caddyfile.subdomain.example Caddyfile
+# 2. Replace [SYNOLOGY_IP] with your Synology's local IP (e.g., 192.168.1.10)
+# 3. Ensure wildcard DNS is configured (*.pochita.synology.me)
+# 4. Deploy: make docker-prod
+#
+# See docs/SYNOLOGY_DEPLOYMENT.md for complete setup instructions.
+# ============================================================================
+
+# Global options
+{
+    # Use Let's Encrypt staging for testing (comment out for production)
+    # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+
+    # Email for Let's Encrypt notifications
+    email your.email@example.com
+}
+
+# ============================================================================
+# MAIN DASHBOARD - Homepage
+# ============================================================================
+
+pochita.synology.me {
+    # Homer dashboard - main landing page
+    reverse_proxy homer:8080
+
+    # Logging
+    log {
+        output file /var/log/caddy/pochita-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+
+    # Standard security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' unpkg.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
+    }
+
+    # Compression
+    encode {
+        gzip 6
+        zstd
+    }
+
+    # Cache static assets
+    @static {
+        path *.css *.js *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static {
+        Cache-Control "public, max-age=31536000, immutable"
+    }
+}
+
+# ============================================================================
+# MONITORING SERVICES
+# ============================================================================
+
+# Uptime Kuma - Status monitoring
+status.pochita.synology.me {
+    reverse_proxy uptime-kuma:3001
+
+    log {
+        output file /var/log/caddy/status-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# Grafana - Metrics dashboards (Protected by Authelia)
+grafana.pochita.synology.me {
+    # Authelia forward auth for SSO
+    forward_auth authelia:9091 {
+        uri /api/verify?rd=https://auth.pochita.synology.me
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy grafana:3000
+
+    log {
+        output file /var/log/caddy/grafana-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# Prometheus - Metrics collection (Internal only, can expose if needed)
+# prom.pochita.synology.me {
+#     forward_auth authelia:9091 {
+#         uri /api/verify?rd=https://auth.pochita.synology.me
+#         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+#     }
+#     reverse_proxy prometheus:9090
+# }
+
+# ============================================================================
+# SECURITY & AUTHENTICATION
+# ============================================================================
+
+# Authelia - SSO Authentication
+auth.pochita.synology.me {
+    reverse_proxy authelia:9091
+
+    log {
+        output file /var/log/caddy/auth-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# ============================================================================
+# MANAGEMENT SERVICES
+# ============================================================================
+
+# Dockge - Docker Compose management (Protected)
+dockge.pochita.synology.me {
+    forward_auth authelia:9091 {
+        uri /api/verify?rd=https://auth.pochita.synology.me
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy dockge:5001
+
+    log {
+        output file /var/log/caddy/dockge-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# Kopia - Backup management (Protected)
+backup.pochita.synology.me {
+    forward_auth authelia:9091 {
+        uri /api/verify?rd=https://auth.pochita.synology.me
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy kopia:51515
+
+    log {
+        output file /var/log/caddy/backup-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# ============================================================================
+# SYNOLOGY NAS SERVICES (Proxied from existing Synology)
+# ============================================================================
+
+# Jellyfin - Media server (Replace [SYNOLOGY_IP] with actual IP)
+media.pochita.synology.me {
+    # Optional: Protect with Authelia (Jellyfin has its own auth)
+    # forward_auth authelia:9091 {
+    #     uri /api/verify?rd=https://auth.pochita.synology.me
+    #     copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    # }
+
+    reverse_proxy [SYNOLOGY_IP]:8096
+
+    log {
+        output file /var/log/caddy/media-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# Synology DSM - NAS admin interface (Protected)
+nas.pochita.synology.me {
+    # Highly recommended to protect with Authelia
+    forward_auth authelia:9091 {
+        uri /api/verify?rd=https://auth.pochita.synology.me
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy https://[SYNOLOGY_IP]:5001 {
+        transport http {
+            # Required if Synology uses self-signed certificate
+            tls_insecure_skip_verify
+        }
+    }
+
+    log {
+        output file /var/log/caddy/nas-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# ============================================================================
+# OPTIONAL ADDITIONAL SERVICES
+# ============================================================================
+
+# Copyparty - File browser (if installed on Synology)
+# files.pochita.synology.me {
+#     forward_auth authelia:9091 {
+#         uri /api/verify?rd=https://auth.pochita.synology.me
+#         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+#     }
+#     reverse_proxy [SYNOLOGY_IP]:8000
+# }
+
+# RetroArch - Gaming (if installed on Synology)
+# arcade.pochita.synology.me {
+#     forward_auth authelia:9091 {
+#         uri /api/verify?rd=https://auth.pochita.synology.me
+#         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+#     }
+#     reverse_proxy [SYNOLOGY_IP]:8010
+# }
+
+# PhotoPrism / Immich - Photo gallery (if installed)
+# photos.pochita.synology.me {
+#     forward_auth authelia:9091 {
+#         uri /api/verify?rd=https://auth.pochita.synology.me
+#         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+#     }
+#     reverse_proxy [SYNOLOGY_IP]:2342
+# }
+
+# Ollama / Open WebUI - Local AI (if deployed)
+# ai.pochita.synology.me {
+#     forward_auth authelia:9091 {
+#         uri /api/verify?rd=https://auth.pochita.synology.me
+#         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+#     }
+#     reverse_proxy open-webui:3000
+# }
+
+# ============================================================================
+# ADDITIONAL CONFIGURATION EXAMPLES
+# ============================================================================
+
+# Example: Service with custom headers
+# service.pochita.synology.me {
+#     reverse_proxy service:port {
+#         header_up Host {upstream_hostport}
+#         header_up X-Real-IP {remote_host}
+#         header_up X-Forwarded-For {remote_host}
+#         header_up X-Forwarded-Proto {scheme}
+#     }
+# }
+
+# Example: WebSocket support (if needed)
+# ws.pochita.synology.me {
+#     reverse_proxy service:port {
+#         header_up Connection {>Connection}
+#         header_up Upgrade {>Upgrade}
+#     }
+# }
+
+# Example: Basic auth (alternative to Authelia for simple cases)
+# simple.pochita.synology.me {
+#     basicauth {
+#         username $2a$14$hashed_password_here
+#     }
+#     reverse_proxy service:port
+# }
+
+# ============================================================================
+# HEALTH CHECK ENDPOINT (Optional - useful for monitoring)
+# ============================================================================
+
+health.pochita.synology.me {
+    respond "OK" 200
+}
+
+# ============================================================================
+# NOTES
+# ============================================================================
+#
+# 1. Replace [SYNOLOGY_IP] with your Synology's local IP address
+#    Example: 192.168.1.10
+#
+# 2. Ensure wildcard DNS is configured:
+#    *.pochita.synology.me → Your public IP
+#
+# 3. Port forwarding required:
+#    - 80 → Club server (HTTP for ACME challenge)
+#    - 443 → Club server (HTTPS)
+#    - 51820 → Club server (WireGuard VPN)
+#
+# 4. Let's Encrypt rate limits:
+#    - 50 certificates per domain per week
+#    - 5 certificates per hostname per week
+#    - Use staging CA for testing (uncomment in global options)
+#
+# 5. Authelia protection:
+#    - Services with forward_auth require login
+#    - Configure access control in authelia/configuration.yml
+#    - Can be one_factor or two_factor (recommended)
+#
+# 6. Logging:
+#    - All access logs in /var/log/caddy/
+#    - Rotation: 100MB per file, keep 5 files, 30 days retention
+#    - JSON format for easy parsing
+#
+# 7. Security headers:
+#    - HSTS enabled with 1 year max-age
+#    - CSP configured for common services
+#    - Adjust CSP if services break (check browser console)
+#
+# 8. Troubleshooting:
+#    - Check logs: docker logs caddy
+#    - Validate config: docker exec caddy caddy validate --config /etc/caddy/Caddyfile
+#    - Test forward auth: curl -I https://grafana.pochita.synology.me
+#    - Check certificates: docker exec caddy caddy list-certificates
+#
+# ============================================================================
