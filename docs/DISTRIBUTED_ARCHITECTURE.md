@@ -62,6 +62,22 @@ This guide explains how to distribute The Club services across multiple devices 
 - **Not Recommended For**: Critical services (DNS, VPN), production use
 - **Available**: Can be used for experimental/testing purposes only
 
+#### Libre Computer Le Potato (AML-S905X-CC)
+- **CPU**: Amlogic S905X (4-core ARM Cortex-A53, 1.5 GHz)
+- **RAM**: 2GB DDR3-2133 (same as Pi 4 2GB model)
+- **GPU**: ARM Mali-450 with **hardware 4K video decode** (H.265, VP9, H.264)
+- **Storage**: microSD + eMMC module support (more reliable than microSD)
+- **Network**: **100 Mbps Ethernet** (NOT Gigabit) - No built-in WiFi
+- **USB**: USB 2.0 ports
+- **Power**: ~2-3W typical (more efficient than Pi 4)
+- **Released**: 2017 (still sold in 2026)
+- **Price**: ~$35 new (similar to Pi 4 2GB)
+- **Best For**: Media applications (4K hardware decode), Pi-hole/DNS, low-power server
+- **Advantages**: Better video transcoding than Pi 3/4, eMMC support, faster than Pi 3 B+
+- **Limitations**: 100 Mbps Ethernet (vs Pi 4's Gigabit), no WiFi, smaller community than Pi
+- **Performance**: 50-60% of Pi 4 CPU performance, but uses half the power
+- **Available**: Good alternative to Raspberry Pi for specific use cases
+
 #### Synology DS415+ NAS
 - **CPU**: Marvell Armada XP (ARM dual-core, 1.33 GHz)
 - **RAM**: 1GB (expandable to 2GB)
@@ -678,7 +694,152 @@ The Pi Zero 2 W is significantly more limited than even the Pi 3.
 
 ---
 
-### Cost-Benefit: Pi Zero 2 W vs Pi 3 vs Pi 4
+### Libre Computer Le Potato (AML-S905X-CC): Raspberry Pi Alternative
+
+The Le Potato is a Raspberry Pi alternative with some unique strengths, particularly for media applications.
+
+#### Hardware Strengths
+
+**Superior Video Capabilities**:
+- ✅ **Hardware 4K video decode** (H.265/HEVC, VP9, H.264)
+- ✅ ARM Mali-450 GPU with OpenGL and OpenVG
+- ✅ Better media transcoding than Pi 3/4 (hardware accelerated)
+- ✅ Ideal for media servers (Jellyfin, Plex, Emby)
+
+**Other Advantages**:
+- ✅ **2GB DDR3 RAM** (same as Pi 4 2GB model)
+- ✅ **eMMC module support** (more reliable than microSD for 24/7 operation)
+- ✅ **Faster than Pi 3 B+** with half the power consumption
+- ✅ **Lower price**: ~$35 (competitive with Pi 4 2GB)
+- ✅ **Compatible with Docker** and Docker Compose
+
+---
+
+#### Hardware Limitations
+
+**Critical Limitations**:
+- ❌ **Only 100 Mbps Ethernet** (not Gigabit like Pi 4)
+- ❌ **No built-in WiFi** (requires USB WiFi dongle)
+- ❌ **50-60% slower CPU** than Raspberry Pi 4
+- ❌ **Smaller community** and less software support than Raspberry Pi
+- ❌ **Slower microSD I/O** (15-20 MB/s sequential, 2.5-4.5 MB/s random)
+
+---
+
+#### What Le Potato CAN Handle
+
+**✅ Good Use Cases for The Club**:
+
+1. **Pi-hole + Unbound (DNS)** - Excellent
+   - RAM: 120-150MB / 2GB (plenty of headroom)
+   - CPU: 5-10% usage
+   - Network: 100 Mbps plenty for DNS queries
+   - eMMC support = very reliable for 24/7 DNS
+   - **Verdict**: ✅ Better than Pi 3, similar to Pi 4 for this use case
+
+2. **Media Transcoding** (if needed)
+   - Hardware 4K decode significantly better than Pi 3/4
+   - Could handle Jellyfin transcoding (but Jellyfin already on Synology)
+   - **Verdict**: ✅ Excellent if you need media processing
+
+3. **Single Service** (DNS OR VPN OR Monitoring)
+   - 2GB RAM enough for one service
+   - 100 Mbps Ethernet limiting factor
+   - **Verdict**: ✅ Works well for single service deployment
+
+---
+
+#### What Le Potato CANNOT Handle Well
+
+**⚠️ Limitations for The Club**:
+
+1. **WireGuard VPN** - Limited by 100 Mbps Ethernet
+   - Throughput: ~80-100 Mbps max
+   - CPU: 15-25% under load
+   - **Verdict**: ⚠️ Acceptable but limited (Pi 4 is better with Gigabit)
+
+2. **Multiple Services** - 100 Mbps bottleneck
+   - DNS + VPN + Monitoring = network congestion
+   - All traffic shares 100 Mbps Ethernet
+   - **Verdict**: ⚠️ Not recommended (Pi 4 better for multi-service)
+
+3. **High Network I/O** - 100 Mbps ceiling
+   - Cannot saturate Gigabit home network
+   - Backup operations will be slow
+   - **Verdict**: ❌ Skip for high I/O tasks
+
+---
+
+#### Le Potato vs Raspberry Pi Comparison
+
+| Feature | Le Potato | Pi 3 B+ | Pi 4 (2GB) |
+|---------|-----------|---------|------------|
+| **RAM** | 2GB DDR3 ✅ | 1GB ⚠️ | 2GB ✅ |
+| **Network** | 100 Mbps ⚠️ | 100 Mbps ⚠️ | Gigabit ✅ |
+| **WiFi** | None ❌ (USB dongle) | Built-in ✅ | Built-in ✅ |
+| **4K Video Decode** | Hardware ✅ | Software ❌ | Software ❌ |
+| **eMMC Support** | Yes ✅ | No ❌ | No ❌ |
+| **CPU Performance** | 150-200% of Pi 3 | Baseline | 300-350% of Pi 3 ✅ |
+| **Pi-hole + Unbound** | ✅ Excellent | ✅ Excellent | ✅ Excellent |
+| **VPN Throughput** | ~80-100 Mbps ⚠️ | ~50-80 Mbps | ~200+ Mbps ✅ |
+| **Multiple Services** | ⚠️ Limited | ❌ No | ✅ Yes |
+| **Power Draw** | 2-3W ✅ | 2-3W | 4-6W |
+| **Community Support** | Small ⚠️ | Large ✅ | Large ✅ |
+| **Price** | $35 | $15-25 used | $35-45 used |
+
+---
+
+#### Real-World Performance for Homelab
+
+**Pi-hole + Unbound Performance**:
+- **DNS Latency**: 8-12ms (similar to Pi 3/4)
+- **Throughput**: 6,000+ queries/sec (plenty for home use)
+- **CPU Usage**: 5-10% average
+- **Reliability**: Excellent with eMMC (better than microSD)
+- **Verdict**: ✅ **Rock-solid** for DNS according to user reports
+
+**Docker Support**:
+- ✅ Docker and Docker Compose work well
+- ✅ Armbian provides good Linux support (Ubuntu 22.04 LTS)
+- ✅ Pi-hole installation "runs without hiccups"
+- ⚠️ Smaller image ecosystem than Raspberry Pi
+
+---
+
+#### Recommendation for Le Potato
+
+**When to Choose Le Potato**:
+- ✅ If you need hardware 4K video decode
+- ✅ If you want eMMC reliability (better than microSD)
+- ✅ If you're running a single service (DNS)
+- ✅ If you want better media transcoding than Pi 3/4
+
+**When to Choose Pi 4 Instead**:
+- ✅ If you need Gigabit Ethernet (VPN, backups, multi-service)
+- ✅ If you need WiFi built-in
+- ✅ If you want larger community support
+- ✅ If you're running multiple services
+
+**For The Club Homelab**:
+
+**Best Use Case**: **Dedicated DNS Server with eMMC**
+- Le Potato + eMMC module = extremely reliable DNS server
+- 2GB RAM provides headroom
+- 100 Mbps Ethernet is plenty for DNS
+- Hardware video decode not needed for DNS (wasted capability)
+
+**Verdict**: ⚠️ **Good but not ideal** for The Club
+- **For DNS only**: Similar to Pi 3/4 (all three work great)
+- **For multiple services**: Pi 4 is better (Gigabit Ethernet)
+- **For media**: Excellent (but you already have Jellyfin on Synology)
+
+**Recommendation**:
+- **If you already own Le Potato**: Great for dedicated DNS server with eMMC
+- **If buying new**: Get **Raspberry Pi 4 (4GB)** for flexibility (Gigabit + WiFi + larger community)
+
+---
+
+### Cost-Benefit: Pi Zero 2 W vs Pi 3 vs Pi 4 vs Le Potato
 
 **Raspberry Pi Zero 2 W**:
 - **New Price**: $15
@@ -692,6 +853,14 @@ The Pi Zero 2 W is significantly more limited than even the Pi 3.
 - **Best For**: Single service (DNS with Pi-hole + Unbound)
 - **Verdict**: ✅ Great value if you already own one, perfect for dedicated DNS
 
+**Libre Computer Le Potato (2GB)**:
+- **New Price**: $35
+- **Power**: 2-3W
+- **Best For**: DNS server with eMMC reliability, media transcoding
+- **Advantages**: Hardware 4K decode, eMMC support, faster than Pi 3
+- **Limitations**: 100 Mbps Ethernet (not Gigabit), no WiFi, smaller community
+- **Verdict**: ⚠️ Good for DNS with eMMC, but Pi 4 better for multi-service/VPN
+
 **Raspberry Pi 4 (4GB)**:
 - **New Price**: $55
 - **Used Price**: $35-45
@@ -702,8 +871,10 @@ The Pi Zero 2 W is significantly more limited than even the Pi 3.
 **Recommendation**:
 - **Have Pi Zero 2 W?** Use for testing/IoT only, not for homelab services
 - **Have Pi 3 already?** Perfect for Pi-hole + Unbound (dedicated DNS server)
-- **Buying new?** Get Pi 4 (4GB model) for flexibility and future-proofing
-- **Budget constrained?** Pi 3 B+ is great value for DNS (used ~$20)
+- **Have Le Potato?** Excellent for DNS with eMMC module (very reliable)
+- **Buying new for homelab?** Get **Pi 4 (4GB)** for flexibility (Gigabit + WiFi + community)
+- **Buying new for media?** Le Potato has better 4K hardware decode than Pi 4
+- **Budget constrained?** Pi 3 B+ used (~$20) best value for DNS only
 
 ---
 
@@ -1139,6 +1310,7 @@ Raspberry Pi 4 (Caddy Reverse Proxy)
 | Raspberry Pi 4 | 3W | 6W | $0.50-1/month |
 | Raspberry Pi 5 | 4W | 8W | $0.70-1.50/month |
 | Raspberry Pi 3 Model B/B+ | 1.5W | 2.5W | $0.25-0.50/month |
+| Libre Computer Le Potato | 1.5W | 3W | $0.25-0.60/month |
 | Raspberry Pi Zero 2 W | 0.4W | 1W | $0.10-0.20/month |
 | Synology DS415+ | 20W | 35W | $4-7/month |
 
@@ -1171,11 +1343,13 @@ Raspberry Pi 4 (Caddy Reverse Proxy)
 |----------|---------------|------------|-----------|-------|
 | N97 PC | 5-10ms | 10,000+ queries/sec | 2-5% | Wired |
 | Pi 4 | 5-10ms | 8,000+ queries/sec | 5-10% | Wired |
+| Le Potato | 8-12ms | 6,000+ queries/sec | 5-10% | Wired, 2GB RAM |
 | Pi 3 B+ | 8-15ms | 5,000+ queries/sec | 8-15% | Wired |
 | Pi Zero 2 W | 15-25ms | 2,000+ queries/sec | 15-25% | **WiFi + 512MB RAM** |
 
 **Verdict**:
-- N97, Pi 4, Pi 3: All excellent for home use (typical: 100-200 queries/minute)
+- N97, Pi 4, Le Potato, Pi 3: All excellent for home use (typical: 100-200 queries/minute)
+- Le Potato: ✅ Similar performance to Pi 3/4, extra reliability with eMMC option
 - Pi Zero 2 W: ❌ **Cannot run Pi-hole + Unbound together** (exceeds 512MB RAM)
   - Can only run Pi-hole alone with external DNS (less private)
   - WiFi adds 5-10ms latency vs Ethernet
@@ -1186,13 +1360,15 @@ Raspberry Pi 4 (Caddy Reverse Proxy)
 | Location | Throughput | CPU Usage | Latency | Network Type |
 |----------|-----------|-----------|---------|--------------|
 | N97 PC | 500+ Mbps | 5-10% | <1ms | Wired |
-| Pi 4 | 100-200 Mbps | 10-20% | 1-2ms | Wired |
-| Pi 3 B+ | 50-80 Mbps | 20-35% | 2-3ms | Wired |
+| Pi 4 | 100-200 Mbps | 10-20% | 1-2ms | Gigabit Ethernet |
+| Le Potato | 80-100 Mbps | 15-25% | 1-2ms | **100 Mbps Ethernet** |
+| Pi 3 B+ | 50-80 Mbps | 20-35% | 2-3ms | 100 Mbps Ethernet |
 | Pi Zero 2 W | 20-40 Mbps | 35-50% | 5-10ms | **WiFi 2.4 GHz** |
 
 **Verdict**:
 - **N97**: Overkill for most home use
 - **Pi 4**: Excellent for gigabit home internet
+- **Le Potato**: ⚠️ Acceptable (~80-100 Mbps max), limited by 100 Mbps Ethernet, faster CPU than Pi 3
 - **Pi 3**: Sufficient for <100 Mbps internet, limited by 100 Mbps Ethernet
 - **Pi Zero 2 W**: ❌ Not recommended - WiFi bottleneck (~40 Mbps max), unreliable for VPN
 
