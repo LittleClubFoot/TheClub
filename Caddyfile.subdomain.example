@@ -276,6 +276,52 @@ vault.pochita.synology.me {
 }
 
 # ============================================================================
+# HOME SECURITY
+# ============================================================================
+
+# Frigate NVR - AI-powered security camera system
+nvr.pochita.synology.me {
+    # Protect with Authelia SSO
+    forward_auth authelia:9091 {
+        uri /api/verify?rd=https://auth.pochita.synology.me
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy frigate:5000 {
+        # WebSocket support for live streaming
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+
+        # Frigate CSP (allows WebSocket and media)
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' wss: https:; media-src 'self' blob:; worker-src 'self' blob:"
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/nvr-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+
+    # Compression
+    encode {
+        gzip 6
+        zstd
+    }
+}
+
+# ============================================================================
 # OPTIONAL ADDITIONAL SERVICES
 # ============================================================================
 
