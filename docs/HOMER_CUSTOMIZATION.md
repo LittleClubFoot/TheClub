@@ -32,6 +32,9 @@ This guide explains the enhanced Homer dashboard configuration for The Club, sho
 - **WireGuard VPN**: Secure remote access
 - **Vaultwarden**: Self-hosted password manager (Synology)
 
+#### 📹 Home Security
+- **Frigate NVR**: AI-powered security camera system
+
 #### 🛠️ Management
 - **Dockge**: Docker Compose stack management
 - **Kopia**: Encrypted backup management
@@ -118,6 +121,7 @@ assets/icons/
 ├── auth.png        # Authelia/lock icon
 ├── vpn.png         # WireGuard/VPN icon
 ├── vault.png       # Vaultwarden/password manager icon
+├── frigate.png     # Frigate NVR logo
 ├── docker.png      # Docker/Dockge logo
 ├── backup.png      # Backup/Kopia icon
 ├── jellyfin.png    # Jellyfin logo
@@ -135,6 +139,7 @@ assets/icons/
    - [Grafana](https://grafana.com/static/assets/img/grafana_icon.svg)
    - [Prometheus](https://prometheus.io/assets/prometheus_logo.svg)
    - [Vaultwarden](https://github.com/bitwarden/brand/blob/master/icons/icon.png) (use Bitwarden logo)
+   - [Frigate](https://raw.githubusercontent.com/blakeblackshear/frigate/dev/web/public/android-chrome-192x192.png)
 
 2. **Icon Packs**:
    - [Font Awesome](https://fontawesome.com/) (built-in)

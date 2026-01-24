@@ -149,6 +149,20 @@ services:
         target: "_blank"
 
   # ========================================================================
+  # Home Security
+  # ========================================================================
+  - name: "📹 Home Security"
+    icon: "fas fa-video"
+    items:
+      - name: "Frigate NVR"
+        logo: "assets/icons/frigate.png"
+        subtitle: "AI-powered security camera system"
+        tag: "security"
+        keywords: "nvr cameras security surveillance frigate ai detection object"
+        url: "https://nvr.pochita.synology.me"
+        target: "_blank"
+
+  # ========================================================================
   # Management & Automation
   # ========================================================================
   - name: "🛠️ Management"
