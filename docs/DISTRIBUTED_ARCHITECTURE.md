@@ -49,6 +49,19 @@ This guide explains how to distribute The Club services across multiple devices 
 - **Limitations**: Limited RAM (1GB), slower network, USB 2.0 bottleneck
 - **Available**: Can be used for specific services (see below)
 
+#### Raspberry Pi Zero 2 W
+- **CPU**: ARM Cortex-A53 (4-core, 1.0 GHz) - same as Pi 3 but slower
+- **RAM**: 512MB LPDDR2 (half of Pi 3!)
+- **Storage**: microSD only
+- **Network**: WiFi 802.11n (2.4 GHz), Bluetooth 4.2 - **NO Ethernet port**
+- **Power**: ~0.4W idle, ~1W active (most power-efficient)
+- **Released**: 2021
+- **Price**: ~$15 new
+- **Best For**: Ultra-lightweight single service, testing, non-critical tasks
+- **Limitations**: Only 512MB RAM (very limiting), WiFi-only (latency/reliability), slower CPU
+- **Not Recommended For**: Critical services (DNS, VPN), production use
+- **Available**: Can be used for experimental/testing purposes only
+
 #### Synology DS415+ NAS
 - **CPU**: Marvell Armada XP (ARM dual-core, 1.33 GHz)
 - **RAM**: 1GB (expandable to 2GB)
@@ -574,24 +587,123 @@ docker stats
 
 ---
 
-### Cost-Benefit: Pi 3 vs Pi 4
+### Raspberry Pi Zero 2 W: Ultra-Limited Use Cases
+
+The Pi Zero 2 W is significantly more limited than even the Pi 3.
+
+#### Hardware Constraints
+
+**Critical Limitations**:
+- ❌ **Only 512MB RAM** (half of Pi 3)
+- ❌ **WiFi only** - No Ethernet port (less reliable, higher latency)
+- ❌ **Slower CPU** (1.0 GHz vs Pi 3's 1.4 GHz)
+- ❌ **WiFi bandwidth** limited (~40 Mbps real-world)
+
+#### What It CAN Handle (Barely)
+
+**Pi-hole ONLY** (without Unbound):
+- ⚠️ Pi-hole alone: ~80-100MB RAM
+- ⚠️ **Cannot** run Unbound alongside (would exceed 512MB)
+- ⚠️ Must use external DNS upstream (Google, Cloudflare)
+- ⚠️ WiFi adds latency to DNS queries (~5-10ms extra)
+- ⚠️ Less reliable than Ethernet-based DNS
+
+**Resource Usage**:
+- **RAM**: 80-120MB / 512MB (leaves 400MB buffer, but...)
+- **CPU**: 10-15%
+- **Network**: WiFi 2.4 GHz only
+
+**Verdict**: ⚠️ **NOT RECOMMENDED** for production DNS
+
+---
+
+#### What Pi Zero 2 W CANNOT Handle
+
+❌ **Do NOT use Pi Zero 2 W for**:
+- ❌ Pi-hole + Unbound (exceeds 512MB RAM)
+- ❌ VPN (WiFi bottleneck, unreliable)
+- ❌ Uptime Kuma (needs 150-200MB, too tight)
+- ❌ Any critical network service (WiFi unreliable)
+- ❌ Multiple services (RAM too limited)
+- ❌ Production use (too constrained)
+
+---
+
+#### When Pi Zero 2 W Makes Sense
+
+**✅ Good Use Cases**:
+1. **Testing/Development**: Test Docker configurations before deploying to real hardware
+2. **IoT Sensors**: Temperature monitoring, motion sensors (non-critical)
+3. **Display Dashboard**: Kiosk mode showing Homer dashboard on a screen
+4. **Learning**: Experiment with Docker/Linux on cheap hardware
+5. **Backup Pi-hole**: Secondary DNS server (failover only)
+
+**Power Advantage**:
+- **0.4-1W** power consumption (lowest of all Pis)
+- Perfect for battery-powered or solar setups
+- Runs very cool (rarely needs heatsink)
+
+---
+
+#### Pi Zero 2 W vs Other Pis
+
+| Feature | Pi Zero 2 W | Pi 3 B+ | Pi 4 (4GB) |
+|---------|-------------|---------|------------|
+| **RAM** | 512MB ❌ | 1GB ⚠️ | 4GB ✅ |
+| **Network** | WiFi only ❌ | 100 Mbps Ethernet ✅ | Gigabit Ethernet ✅ |
+| **Pi-hole + Unbound** | ❌ No (RAM) | ✅ Yes | ✅ Yes |
+| **Pi-hole only** | ⚠️ Marginal | ✅ Yes | ✅ Yes |
+| **VPN** | ❌ No (WiFi) | ⚠️ 50-80 Mbps | ✅ 100-200 Mbps |
+| **Multiple Services** | ❌ No | ❌ No | ✅ Yes |
+| **Power Draw** | 0.4-1W ⭐ | 2-3W | 4-6W |
+| **Reliability** | ⚠️ WiFi | ✅ Wired | ✅ Wired |
+| **Price** | $15 | $15-25 | $45-60 |
+
+---
+
+#### Recommendation for Pi Zero 2 W
+
+**If You Have a Pi Zero 2 W**:
+- ✅ Use it for: Testing, IoT projects, display kiosk
+- ❌ Don't use it for: DNS, VPN, or any critical service
+- 💡 Better to get a Pi 3 or Pi 4 for homelab services
+
+**Why Not for Homelab?**:
+1. 512MB RAM is too limiting for most services
+2. WiFi-only is unreliable for critical network services (DNS, VPN)
+3. No Ethernet means higher latency and potential dropouts
+4. Cannot run Pi-hole + Unbound together (the recommended setup)
+
+**Verdict**: ❌ **Skip Pi Zero 2 W for The Club homelab** - Use Pi 3 or Pi 4 instead
+
+---
+
+### Cost-Benefit: Pi Zero 2 W vs Pi 3 vs Pi 4
+
+**Raspberry Pi Zero 2 W**:
+- **New Price**: $15
+- **Power**: 0.4-1W (ultra-low)
+- **Best For**: Testing, IoT sensors, non-critical tasks
+- **Verdict**: ❌ Not suitable for homelab critical services (WiFi-only, 512MB RAM)
 
 **Raspberry Pi 3 Model B/B+**:
 - **Used Price**: $15-25
 - **Power**: 2-3W
-- **Best For**: Single service (DNS)
-- **Verdict**: ✅ Great value if you already own one
+- **Best For**: Single service (DNS with Pi-hole + Unbound)
+- **Verdict**: ✅ Great value if you already own one, perfect for dedicated DNS
 
 **Raspberry Pi 4 (4GB)**:
 - **New Price**: $55
 - **Used Price**: $35-45
 - **Power**: 4-6W
-- **Best For**: Multiple services
-- **Verdict**: ✅ Better investment if buying new
+- **Best For**: Multiple services (DNS + VPN + monitoring)
+- **Verdict**: ✅ Better investment if buying new, most flexible
 
 **Recommendation**:
-- **Have Pi 3 already?** Use it for Pi-hole + Unbound (perfect fit)
-- **Buying new?** Get Pi 4 (4GB model) for flexibility
+- **Have Pi Zero 2 W?** Use for testing/IoT only, not for homelab services
+- **Have Pi 3 already?** Perfect for Pi-hole + Unbound (dedicated DNS server)
+- **Buying new?** Get Pi 4 (4GB model) for flexibility and future-proofing
+- **Budget constrained?** Pi 3 B+ is great value for DNS (used ~$20)
 
 ---
 
@@ -1027,6 +1139,7 @@ Raspberry Pi 4 (Caddy Reverse Proxy)
 | Raspberry Pi 4 | 3W | 6W | $0.50-1/month |
 | Raspberry Pi 5 | 4W | 8W | $0.70-1.50/month |
 | Raspberry Pi 3 Model B/B+ | 1.5W | 2.5W | $0.25-0.50/month |
+| Raspberry Pi Zero 2 W | 0.4W | 1W | $0.10-0.20/month |
 | Synology DS415+ | 20W | 35W | $4-7/month |
 
 **Scenario 1: Move Pi-hole + Unbound to Pi 3**
@@ -1054,26 +1167,34 @@ Raspberry Pi 4 (Caddy Reverse Proxy)
 
 ### DNS Queries (Pi-hole + Unbound)
 
-| Location | Query Latency | Throughput | CPU Usage |
-|----------|---------------|------------|-----------|
-| N97 PC | 5-10ms | 10,000+ queries/sec | 2-5% |
-| Pi 4 | 5-10ms | 8,000+ queries/sec | 5-10% |
-| Pi 3 B+ | 8-15ms | 5,000+ queries/sec | 8-15% |
+| Location | Query Latency | Throughput | CPU Usage | Notes |
+|----------|---------------|------------|-----------|-------|
+| N97 PC | 5-10ms | 10,000+ queries/sec | 2-5% | Wired |
+| Pi 4 | 5-10ms | 8,000+ queries/sec | 5-10% | Wired |
+| Pi 3 B+ | 8-15ms | 5,000+ queries/sec | 8-15% | Wired |
+| Pi Zero 2 W | 15-25ms | 2,000+ queries/sec | 15-25% | **WiFi + 512MB RAM** |
 
-**Verdict**: All are excellent for home use (typical: 100-200 queries/minute). Pi 3 latency difference (~5ms) is imperceptible.
+**Verdict**:
+- N97, Pi 4, Pi 3: All excellent for home use (typical: 100-200 queries/minute)
+- Pi Zero 2 W: ❌ **Cannot run Pi-hole + Unbound together** (exceeds 512MB RAM)
+  - Can only run Pi-hole alone with external DNS (less private)
+  - WiFi adds 5-10ms latency vs Ethernet
+  - Not recommended for production DNS
 
 ### VPN Throughput (WireGuard)
 
-| Location | Throughput | CPU Usage | Latency |
-|----------|-----------|-----------|---------|
-| N97 PC | 500+ Mbps | 5-10% | <1ms |
-| Pi 4 | 100-200 Mbps | 10-20% | 1-2ms |
-| Pi 3 B+ | 50-80 Mbps | 20-35% | 2-3ms |
+| Location | Throughput | CPU Usage | Latency | Network Type |
+|----------|-----------|-----------|---------|--------------|
+| N97 PC | 500+ Mbps | 5-10% | <1ms | Wired |
+| Pi 4 | 100-200 Mbps | 10-20% | 1-2ms | Wired |
+| Pi 3 B+ | 50-80 Mbps | 20-35% | 2-3ms | Wired |
+| Pi Zero 2 W | 20-40 Mbps | 35-50% | 5-10ms | **WiFi 2.4 GHz** |
 
 **Verdict**:
 - **N97**: Overkill for most home use
 - **Pi 4**: Excellent for gigabit home internet
-- **Pi 3**: Sufficient for <100 Mbps internet, limited by 100 Mbps Ethernet + USB 2.0 bottleneck
+- **Pi 3**: Sufficient for <100 Mbps internet, limited by 100 Mbps Ethernet
+- **Pi Zero 2 W**: ❌ Not recommended - WiFi bottleneck (~40 Mbps max), unreliable for VPN
 
 ---
 
