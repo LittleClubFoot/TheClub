@@ -35,8 +35,19 @@ This guide explains how to distribute The Club services across multiple devices 
 - **CPU**: ARM Cortex-A72 (4-core, 1.5-1.8 GHz)
 - **RAM**: Varies (1GB/2GB/4GB/8GB models)
 - **Storage**: microSD/USB SSD
+- **Network**: Gigabit Ethernet, USB 3.0
 - **Best For**: Lightweight services, network services, always-on tasks
 - **Available**: Fully available for offloading
+
+#### Raspberry Pi 3 Model B/B+
+- **CPU**: ARM Cortex-A53 (4-core, 1.2-1.4 GHz)
+- **RAM**: 1GB LPDDR2
+- **Storage**: microSD only
+- **Network**: 100 Mbps Ethernet (shared with USB 2.0 bus)
+- **Released**: 2016-2018
+- **Best For**: Single lightweight service, DNS, basic monitoring
+- **Limitations**: Limited RAM (1GB), slower network, USB 2.0 bottleneck
+- **Available**: Can be used for specific services (see below)
 
 #### Synology DS415+ NAS
 - **CPU**: Marvell Armada XP (ARM dual-core, 1.33 GHz)
@@ -359,6 +370,230 @@ Move everything possible to Pi 4:
 **Synology NAS**:
 - ✅ Vaultwarden
 - ✅ Jellyfin
+
+**Savings on N97**: ~700-800MB RAM, significant CPU reduction
+
+---
+
+### Option C: Raspberry Pi 3 Model B/B+ (Limited Hardware)
+
+If you only have a Pi 3 available, here's what it can realistically handle:
+
+**Best Choice: Single Service Deployment**
+
+Due to 1GB RAM limitation, run **ONE** of these services:
+
+#### Option C1: Dedicated DNS Server (RECOMMENDED)
+**Raspberry Pi 3**:
+- ✅ Pi-hole + Unbound (DNS only)
+
+**Why This Works**:
+- ✅ Pi-hole was originally designed for Pi 3 (and even Pi Zero)
+- ✅ Combined RAM usage: ~120-150MB (well within 1GB)
+- ✅ DNS queries are not CPU-intensive
+- ✅ Network: 100 Mbps is plenty for DNS (queries are tiny)
+- ✅ Most reliable use case for Pi 3
+
+**Resource Usage**:
+- **RAM**: 120-150MB / 1GB (leaves 850MB buffer)
+- **CPU**: 5-10% average
+- **Network**: <1 Mbps (DNS queries)
+
+**Verdict**: ✅ **EXCELLENT** - This is what many people use Pi 3 for
+
+---
+
+#### Option C2: Dedicated VPN Server (ACCEPTABLE)
+**Raspberry Pi 3**:
+- ✅ WireGuard VPN only
+
+**Why This Works**:
+- ✅ WireGuard is very lightweight
+- ✅ RAM usage: ~50-80MB
+- ⚠️ Network limited to ~50-80 Mbps (USB 2.0 + 100 Mbps Ethernet bottleneck)
+- ⚠️ Slower than Pi 4, but functional
+
+**Resource Usage**:
+- **RAM**: 50-80MB / 1GB
+- **CPU**: 15-25% under load
+- **Network**: Limited to ~50-80 Mbps throughput
+
+**Verdict**: ⚠️ **ACCEPTABLE** - Works, but limited by 100 Mbps Ethernet
+
+---
+
+#### Option C3: Dedicated Monitoring (MARGINAL)
+**Raspberry Pi 3**:
+- ⚠️ Uptime Kuma only
+
+**Why This Is Marginal**:
+- ⚠️ Uptime Kuma: ~150-200MB RAM (tight on 1GB)
+- ⚠️ Can become slow with many monitors (>20)
+- ⚠️ Works, but not ideal
+
+**Resource Usage**:
+- **RAM**: 150-200MB / 1GB
+- **CPU**: 10-15%
+
+**Verdict**: ⚠️ **MARGINAL** - Better on Pi 4, but works
+
+---
+
+#### What Pi 3 CANNOT Handle Well
+
+❌ **Do NOT Run on Pi 3**:
+- ❌ Multiple services simultaneously (1GB RAM too limiting)
+- ❌ FreshRSS (needs 200-300MB + database)
+- ❌ Homer + other services (wastes resources)
+- ❌ Any video processing
+- ❌ Database-heavy applications
+- ❌ Prometheus/Grafana
+
+---
+
+### Raspberry Pi 3 vs Pi 4: Comparison
+
+| Capability | Pi 3 Model B/B+ | Pi 4 (2GB) | Pi 4 (4GB+) |
+|------------|----------------|------------|-------------|
+| **Pi-hole + Unbound** | ✅ Excellent | ✅ Excellent | ✅ Excellent |
+| **WireGuard VPN** | ⚠️ 50-80 Mbps | ✅ 100-200 Mbps | ✅ 200+ Mbps |
+| **Uptime Kuma** | ⚠️ Single service only | ✅ With others | ✅ With others |
+| **MQTT Broker** | ✅ Alone, marginal with others | ✅ With others | ✅ With others |
+| **Homer Dashboard** | ⚠️ Alone only | ✅ With others | ✅ With others |
+| **Multiple Services** | ❌ Not recommended | ⚠️ 2-3 services | ✅ 4-5 services |
+| **FreshRSS** | ❌ Too limited | ⚠️ Marginal | ✅ Works well |
+| **Power Draw** | 2-3W | 3-6W | 4-8W |
+| **Cost (Used)** | $15-25 | $35-50 | $45-60 |
+
+---
+
+### Recommended: Pi 3 as Dedicated DNS Server
+
+**Best Use Case for Raspberry Pi 3**:
+
+```yaml
+# Raspberry Pi 3: DNS Server Only
+services:
+  unbound:
+    image: mvance/unbound-rpi:latest
+    # ... (same config as Pi 4 guide)
+
+  pihole:
+    image: pihole/pihole:latest
+    # ... (same config as Pi 4 guide)
+```
+
+**Configuration**:
+- **Static IP**: `192.168.1.39` (or any available IP)
+- **Services**: Pi-hole + Unbound only
+- **Memory**: 150MB / 1GB used (~85% free)
+- **Router DNS**: Point to `192.168.1.39`
+
+**Benefits**:
+- ✅ Dedicated DNS on separate hardware (resilient)
+- ✅ Low power consumption (2-3W always-on)
+- ✅ Frees up N97 resources
+- ✅ Pi 3 runs cool and stable with just DNS
+- ✅ Perfect use case for older hardware
+
+**If You Have Both Pi 3 and Pi 4**:
+
+**Raspberry Pi 3**:
+- ✅ Pi-hole + Unbound (DNS)
+- Static IP: `192.168.1.39`
+
+**Raspberry Pi 4**:
+- ✅ WireGuard VPN
+- ✅ Uptime Kuma
+- ✅ MQTT Broker
+- ✅ Homer Dashboard (optional)
+- Static IP: `192.168.1.40`
+
+This gives you maximum offload with both devices!
+
+---
+
+### Pi 3 Setup Optimizations
+
+To get the best performance from Pi 3:
+
+#### 1. Use USB SSD Boot (Optional but Recommended)
+
+**Why**:
+- microSD cards are slow and wear out
+- USB SSD provides faster I/O
+- More reliable long-term
+
+**How**:
+```bash
+# Enable USB boot on Pi 3 B+ (newer firmware)
+# Flash Raspberry Pi OS to USB SSD
+# Boot from USB instead of microSD
+```
+
+Note: Only Pi 3 B+ supports USB boot. Pi 3 Model B needs microSD.
+
+#### 2. Disable Unnecessary Services
+
+```bash
+# Disable Bluetooth (saves RAM)
+sudo systemctl disable bluetooth
+sudo systemctl disable hciuart
+
+# Disable WiFi if using Ethernet
+sudo rfkill block wifi
+
+# Reduce GPU memory (headless)
+sudo raspi-config
+# Advanced Options → Memory Split → Set to 16MB
+```
+
+#### 3. Use Lightweight Docker Images
+
+For Pi 3, use ARM32v7 images when available:
+- `pihole/pihole:latest` - Official, ARM-compatible
+- `mvance/unbound-rpi:latest` - Optimized for Raspberry Pi
+
+#### 4. Monitor Resources
+
+```bash
+# Check memory
+free -h
+
+# Check temperature
+vcgencmd measure_temp
+
+# Monitor Docker containers
+docker stats
+```
+
+**Safe Operating Ranges for Pi 3**:
+- **RAM**: Keep usage below 800MB (leave 200MB free)
+- **Temp**: Keep below 70°C (add heatsink if needed)
+- **CPU**: <50% average is healthy
+
+---
+
+### Cost-Benefit: Pi 3 vs Pi 4
+
+**Raspberry Pi 3 Model B/B+**:
+- **Used Price**: $15-25
+- **Power**: 2-3W
+- **Best For**: Single service (DNS)
+- **Verdict**: ✅ Great value if you already own one
+
+**Raspberry Pi 4 (4GB)**:
+- **New Price**: $55
+- **Used Price**: $35-45
+- **Power**: 4-6W
+- **Best For**: Multiple services
+- **Verdict**: ✅ Better investment if buying new
+
+**Recommendation**:
+- **Have Pi 3 already?** Use it for Pi-hole + Unbound (perfect fit)
+- **Buying new?** Get Pi 4 (4GB model) for flexibility
+
+---
 
 **Savings on N97**: ~700-800MB RAM, significant CPU reduction
 
@@ -791,13 +1026,27 @@ Raspberry Pi 4 (Caddy Reverse Proxy)
 | N97 PC | 15W | 30W | $3-6/month |
 | Raspberry Pi 4 | 3W | 6W | $0.50-1/month |
 | Raspberry Pi 5 | 4W | 8W | $0.70-1.50/month |
+| Raspberry Pi 3 Model B/B+ | 1.5W | 2.5W | $0.25-0.50/month |
 | Synology DS415+ | 20W | 35W | $4-7/month |
 
-**Scenario: Move Pi-hole, VPN, Uptime Kuma to Pi 4**
+**Scenario 1: Move Pi-hole + Unbound to Pi 3**
+- N97 Power Savings: ~3W (reduced load)
+- Pi 3 Additional: +2.5W (active)
+- Net Change: -0.5W (saves power!)
+- **Benefit**: Frees N97 resources, Pi 3 extremely power-efficient
+
+**Scenario 2: Move Pi-hole, VPN, Uptime Kuma to Pi 4**
 - N97 Power Savings: ~5W (reduced load)
 - Pi 4 Additional: +6W (active)
 - Net Change: +1W (minimal)
-- **Benefit**: Frees N97 resources, Pi 4 more efficient for these tasks
+- **Benefit**: Frees N97 resources, Pi 4 handles multiple services efficiently
+
+**Scenario 3: Use Both Pi 3 and Pi 4**
+- Pi 3: DNS (2.5W)
+- Pi 4: VPN + Monitoring (6W)
+- N97 Savings: ~8W
+- Net Change: +0.5W
+- **Benefit**: Maximum N97 offload, distributed resilience
 
 ---
 
@@ -809,8 +1058,9 @@ Raspberry Pi 4 (Caddy Reverse Proxy)
 |----------|---------------|------------|-----------|
 | N97 PC | 5-10ms | 10,000+ queries/sec | 2-5% |
 | Pi 4 | 5-10ms | 8,000+ queries/sec | 5-10% |
+| Pi 3 B+ | 8-15ms | 5,000+ queries/sec | 8-15% |
 
-**Verdict**: Negligible difference for home use (100-200 queries/minute typical)
+**Verdict**: All are excellent for home use (typical: 100-200 queries/minute). Pi 3 latency difference (~5ms) is imperceptible.
 
 ### VPN Throughput (WireGuard)
 
@@ -818,8 +1068,12 @@ Raspberry Pi 4 (Caddy Reverse Proxy)
 |----------|-----------|-----------|---------|
 | N97 PC | 500+ Mbps | 5-10% | <1ms |
 | Pi 4 | 100-200 Mbps | 10-20% | 1-2ms |
+| Pi 3 B+ | 50-80 Mbps | 20-35% | 2-3ms |
 
-**Verdict**: Pi 4 sufficient for most home internet (< 100 Mbps typical)
+**Verdict**:
+- **N97**: Overkill for most home use
+- **Pi 4**: Excellent for gigabit home internet
+- **Pi 3**: Sufficient for <100 Mbps internet, limited by 100 Mbps Ethernet + USB 2.0 bottleneck
 
 ---
 
@@ -840,12 +1094,17 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:8080']
 
-  # Raspberry Pi 4
+  # Raspberry Pi 3 (if using for DNS)
+  - job_name: 'pi3-node-exporter'
+    static_configs:
+      - targets: ['192.168.1.39:9100']
+
+  # Raspberry Pi 4 (if using for VPN/monitoring)
   - job_name: 'pi4-node-exporter'
     static_configs:
       - targets: ['192.168.1.40:9100']
 
-  # Raspberry Pi 5
+  # Raspberry Pi 5 (Frigate detector)
   - job_name: 'pi5-node-exporter'
     static_configs:
       - targets: ['192.168.1.50:9100']
@@ -858,7 +1117,7 @@ scrape_configs:
 
 Install Node Exporter on Pis:
 ```bash
-# On Pi 4 and Pi 5
+# On Pi 3, Pi 4, and Pi 5
 docker run -d \
   --name node-exporter \
   --restart unless-stopped \
@@ -873,7 +1132,69 @@ docker run -d \
 
 ## Summary Recommendation
 
-### Best Distribution for Your Setup
+### Scenario 1: If You Have Raspberry Pi 3 Model B/B+
+
+**Move to Raspberry Pi 3** (Single Service):
+1. ✅ **Pi-hole + Unbound ONLY** - Perfect fit, designed for Pi
+   - Static IP: `192.168.1.39`
+   - RAM: 120-150MB / 1GB
+   - Power: 2-3W
+
+**Keep on Raspberry Pi 5**:
+1. ✅ **Frigate Detector** (Hailo AI)
+
+**Keep on N97 PC**:
+1. ✅ Everything else (Caddy, WireGuard, Authelia, Frigate NVR, Grafana, etc.)
+
+**Keep on Synology NAS**:
+1. ✅ **Vaultwarden** - Passwords
+2. ✅ **Jellyfin** - Media
+
+**Expected Results**:
+- **N97 RAM Freed**: ~150MB (DNS offloaded)
+- **N97 CPU Reduced**: 3-5%
+- **Power**: Pi 3 uses only 2-3W (very efficient)
+- **Resilience**: DNS on separate dedicated hardware
+
+---
+
+### Scenario 2: If You Have Both Pi 3 and Pi 4
+
+**Move to Raspberry Pi 3**:
+1. ✅ **Pi-hole + Unbound** - Dedicated DNS server
+   - Static IP: `192.168.1.39`
+
+**Move to Raspberry Pi 4**:
+1. ✅ **WireGuard VPN** - Secure remote access
+2. ✅ **Uptime Kuma** - Monitoring
+3. ✅ **MQTT Broker** - IoT message broker
+   - Static IP: `192.168.1.40`
+
+**Keep on Raspberry Pi 5**:
+1. ✅ **Frigate Detector** (Hailo AI)
+
+**Keep on N97 PC**:
+1. ✅ **Caddy** - Reverse proxy
+2. ✅ **Authelia + Redis** - Central auth
+3. ✅ **Frigate NVR** - Video processing
+4. ✅ **Prometheus + Grafana** - Metrics
+5. ✅ **Kopia + Dockge + Watchtower** - Management
+6. ✅ **Searxng + FreshRSS** - Privacy apps
+7. ✅ **Homer** - Dashboard
+
+**Keep on Synology NAS**:
+1. ✅ **Vaultwarden** - Passwords
+2. ✅ **Jellyfin** - Media
+
+**Expected Results**:
+- **N97 RAM Freed**: ~500-600MB
+- **N97 CPU Reduced**: 15-20%
+- **Power**: Pi 3 (2-3W) + Pi 4 (4-6W) = 6-9W total
+- **Maximum Offload**: Best resource distribution
+
+---
+
+### Scenario 3: If You Only Have Raspberry Pi 4
 
 **Move to Raspberry Pi 4** (Recommended):
 1. ✅ **Pi-hole + Unbound** - Perfect fit, designed for Pi
@@ -946,6 +1267,48 @@ echo "1. Configure DHCP reservation for static IP"
 echo "2. Deploy docker-compose stacks for each service"
 echo "3. Update N97 Caddyfile to point to Pi 4 services"
 echo "4. Update router DNS to Pi 4 IP"
+```
+
+---
+
+## Quick Start: Pi 3 Setup Script
+
+```bash
+#!/bin/bash
+# Raspberry Pi 3 - Quick Setup for DNS Only (Pi-hole + Unbound)
+
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+
+# Reduce GPU memory (headless server)
+echo "gpu_mem=16" | sudo tee -a /boot/firmware/config.txt
+
+# Disable unnecessary services (save RAM)
+sudo systemctl disable bluetooth
+sudo systemctl disable hciuart
+
+# Disable WiFi if using Ethernet (save power)
+sudo rfkill block wifi
+
+# Create directory for DNS stack
+mkdir -p ~/dns-stack
+
+# Set static IP (edit as needed)
+# Use router DHCP reservation instead (recommended)
+
+echo "Raspberry Pi 3 setup complete!"
+echo "Next steps:"
+echo "1. Configure DHCP reservation for static IP (e.g., 192.168.1.39)"
+echo "2. Reboot: sudo reboot"
+echo "3. Deploy Pi-hole + Unbound docker-compose stack"
+echo "4. Update router DNS to Pi 3 IP"
+echo "5. Update N97 Caddyfile to point dns.pochita.synology.me to Pi 3"
+echo ""
+echo "Note: Pi 3 has 1GB RAM - run DNS ONLY for best performance"
 ```
 
 ---
