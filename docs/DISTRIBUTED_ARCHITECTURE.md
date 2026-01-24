@@ -806,6 +806,221 @@ The Le Potato is a Raspberry Pi alternative with some unique strengths, particul
 
 ---
 
+#### Le Potato as Jellyfin Server: Detailed Analysis
+
+The Le Potato's hardware 4K video decode makes it interesting for media serving, but there are critical limitations.
+
+**Hardware Advantages for Jellyfin**:
+- ✅ **Hardware 4K Video Decode** (H.265/HEVC, VP9, H.264)
+- ✅ **ARM Mali-450 GPU** for hardware acceleration
+- ✅ **2GB RAM** (enough for Jellyfin server + light transcoding)
+- ✅ **Low Power** (2-3W vs NAS at 20-35W)
+
+**Critical Limitations for Jellyfin**:
+
+**1. 100 Mbps Ethernet Bottleneck** ❌ (MAJOR LIMITATION)
+- **4K HDR Stream**: 50-80 Mbps bitrate typical
+- **4K SDR Stream**: 25-50 Mbps bitrate
+- **1080p Stream**: 10-20 Mbps bitrate
+
+**Real-World Impact**:
+```
+Single 4K stream:        50-80 Mbps  (uses 50-80% of 100 Mbps)
+Two 4K streams:          100-160 Mbps (EXCEEDS 100 Mbps - impossible)
+One 4K + One 1080p:      60-100 Mbps (maxed out)
+Three 1080p streams:     30-60 Mbps (works)
+```
+
+**Verdict**: ❌ **100 Mbps Ethernet is a dealbreaker** for multi-user 4K streaming
+
+**2. Storage Architecture** ⚠️ (PROBLEMATIC)
+
+**Option A: Media on NAS, Le Potato accesses via network**
+```
+Client → Le Potato (100 Mbps) → NAS
+         ↓
+    Double bottleneck!
+```
+- NAS sends media to Le Potato: Uses 50-80 Mbps
+- Le Potato sends to client: Uses another 50-80 Mbps
+- **Total**: Requires 100-160 Mbps (exceeds 100 Mbps limit)
+- **Verdict**: ❌ **Won't work** for 4K from NAS
+
+**Option B: Media on USB storage attached to Le Potato**
+```
+Client → Le Potato → USB HDD
+         ↓
+    100 Mbps limit to client only
+```
+- Media stored on USB 2.0 drive (slower than USB 3.0)
+- USB 2.0 max: ~35-40 MB/s (280-320 Mbps) - enough for local read
+- Network to client: Limited to 100 Mbps
+- **Verdict**: ⚠️ **Better, but still limited** to 1-2 4K streams
+
+**3. Transcoding Capabilities** ⚠️ (LIMITED)
+
+**Hardware Decoding** (what Le Potato has):
+- ✅ Can DECODE 4K H.265/VP9/H.264
+- Use case: Playing video locally on Le Potato
+
+**Hardware Encoding** (what Jellyfin needs for transcoding):
+- ❌ **No hardware encoding** on Amlogic S905X
+- Cannot transcode 4K → 1080p efficiently
+- CPU too slow for software transcoding
+- **Verdict**: ❌ **Poor transcoding performance**
+
+**Real-World Transcoding**:
+```
+Direct Play (no transcode):     ✅ Works well (if network allows)
+4K → 1080p transcode:            ❌ CPU too slow (< 1 fps)
+1080p → 720p transcode:          ⚠️ Marginal (2-5 fps)
+Audio transcode only:            ✅ Works fine
+```
+
+**4. RAM Limitations** ⚠️
+
+**Jellyfin Resource Usage**:
+- Jellyfin Server: ~300-500MB
+- Transcoding session: +500MB-1GB per stream
+- OS overhead: ~200-300MB
+- **Total**: ~1-2GB for single transcode
+
+**With 2GB RAM**:
+- 1 transcode session: ⚠️ Tight but possible
+- 2+ transcode sessions: ❌ Out of memory
+- **Verdict**: ⚠️ **Limited to 1-2 sessions max**
+
+**5. Multiple Concurrent Streams** ❌ (DEALBREAKER)
+
+**Family Use Scenario**:
+```
+Living room: 4K movie (60 Mbps)
+Bedroom:     1080p show (15 Mbps)
+Phone:       720p (8 Mbps)
+Total:       83 Mbps (near 100 Mbps limit)
+```
+- Add one more stream: Network saturated
+- **Verdict**: ❌ **Not suitable** for family/multi-user
+
+---
+
+#### Le Potato vs Synology DS415+ for Jellyfin
+
+| Feature | Le Potato | Synology DS415+ |
+|---------|-----------|-----------------|
+| **Network** | 100 Mbps ❌ | Gigabit ✅ |
+| **4K Hardware Decode** | Yes ✅ | No ❌ |
+| **4K Hardware Encode** | No ❌ | No ❌ |
+| **CPU Transcoding** | Poor ❌ | Poor ❌ |
+| **RAM** | 2GB ⚠️ | 1GB (expandable to 2GB) ⚠️ |
+| **Storage** | USB 2.0 / NAS ⚠️ | 4-bay internal ✅ |
+| **Direct Play 4K** | 1 stream max ⚠️ | 2-3 streams ✅ |
+| **Multiple 1080p** | 3-4 streams ⚠️ | 5-10 streams ✅ |
+| **Concurrent Users** | 1-2 ❌ | 3-5 ✅ |
+| **Power Draw** | 2-3W ✅ | 20-35W |
+| **Jellyfin Optimization** | Hardware decode only | Better network |
+
+**Verdict**: **Synology DS415+ is better** for Jellyfin despite lacking hardware decode, thanks to **Gigabit Ethernet**.
+
+---
+
+#### When Le Potato Makes Sense for Jellyfin
+
+**✅ Good Use Cases**:
+
+1. **Single User, Direct Play Only**
+   - You're the only user
+   - All clients support H.264/H.265 direct play (no transcoding)
+   - Mostly 1080p or single 4K stream
+   - Media stored on USB drive attached to Le Potato
+
+2. **Dedicated 4K Player** (not a server)
+   - Use Le Potato as a Jellyfin CLIENT (not server)
+   - Connect to HDMI TV
+   - Hardware decode 4K streams from NAS
+   - **Better use case than server!**
+
+3. **Low-Power Home Setup**
+   - Only streaming to 1-2 devices
+   - Mostly lower resolution (1080p or less)
+   - Don't need transcoding
+   - Want to save power (2-3W vs NAS 20-35W)
+
+**❌ Bad Use Cases**:
+
+1. **Family/Multi-User**
+   - 100 Mbps network insufficient
+   - Multiple concurrent streams won't work
+
+2. **Mixed Client Capabilities**
+   - Some clients need transcoding
+   - Le Potato CPU too weak for transcoding
+
+3. **4K HDR Library + Remote Access**
+   - 4K requires ~50-80 Mbps
+   - Remote access adds VPN overhead
+   - 100 Mbps insufficient
+
+4. **Large Media Library on NAS**
+   - Network bottleneck accessing NAS media
+   - Better to keep Jellyfin on NAS itself
+
+---
+
+#### Recommendation: Keep Jellyfin on Synology
+
+**Why Synology DS415+ is Better**:
+1. ✅ **Gigabit Ethernet** - No network bottleneck
+2. ✅ **Direct storage access** - Media on same device (fast)
+3. ✅ **Better multi-user support** - 3-5 concurrent streams
+4. ✅ **Already configured and working**
+
+**Le Potato Alternative**: Use as **Jellyfin Client** instead
+- Connect Le Potato to TV via HDMI
+- Install Jellyfin client (or Kodi with Jellyfin plugin)
+- Hardware decode 4K from Synology server
+- **Better use of hardware capabilities!**
+
+---
+
+#### If You Still Want to Try Le Potato for Jellyfin
+
+**Optimal Setup**:
+1. **Media Storage**: Large USB HDD connected to Le Potato (not NAS)
+2. **Network**: Hardwired 100 Mbps Ethernet
+3. **Jellyfin Config**: Disable transcoding, direct play only
+4. **Users**: Limit to 1-2 concurrent streams
+5. **Quality**: Mostly 1080p, occasional 4K (single stream)
+
+**Expected Performance**:
+- Single 4K direct play: ✅ Works
+- Two 1080p direct play: ✅ Works
+- One 4K + one 1080p: ⚠️ Marginal
+- Any transcoding: ❌ Poor performance
+
+**Power Savings**:
+- Le Potato: 2-3W
+- Synology NAS: 20-35W
+- **Savings**: ~20-30W (~$2-3/month)
+
+**Trade-off**: Save $2-3/month but lose multi-user capability. Not worth it for most users.
+
+---
+
+**Final Verdict for Your Setup**:
+
+❌ **Do NOT move Jellyfin to Le Potato**
+- Synology DS415+ is better (Gigabit Ethernet, integrated storage)
+- 100 Mbps bottleneck makes Le Potato unsuitable for multi-user
+- Hardware decode advantage negated by network limitations
+
+✅ **Better Uses for Le Potato**:
+1. **DNS server** (Pi-hole + Unbound with eMMC)
+2. **Jellyfin CLIENT** (connect to TV, decode 4K from Synology)
+3. **Single lightweight service** (not Jellyfin server)
+
+---
+
 #### Recommendation for Le Potato
 
 **When to Choose Le Potato**:
