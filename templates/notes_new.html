@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - The Club</title>
+    <script src="https://unpkg.com/htmx.org@1.9.3"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
+        .topbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .topbar h1 { font-size: 20px; font-weight: 600; }
+        .topbar a { color: white; text-decoration: none; opacity: 0.85; font-size: 14px; }
+        .topbar a:hover { opacity: 1; }
+        .container {
+            max-width: 720px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 28px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+        .form-group input[type="text"],
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .form-group input[type="text"]:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+        .form-group textarea {
+            min-height: 240px;
+            resize: vertical;
+            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .form-group .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+        .checkbox-group label {
+            font-size: 14px;
+            font-weight: normal;
+            margin-bottom: 0;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #444;
+        }
+        .btn-secondary:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .file-upload input[type="file"] { display: none; }
+        .file-upload-label {
+            color: #667eea;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .file-list { margin-top: 12px; font-size: 13px; color: #555; }
+        .camera-btn {
+            display: inline-block;
+            background: #f0f2f5;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #667eea;
+            border: 1px solid #667eea;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <h1>New Note</h1>
+        <a href="/notes">Back to Notes</a>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <form action="/notes/create" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" placeholder="What is this note about?" autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="body">Content (Markdown)</label>
+                    <textarea id="body" name="body" placeholder="Write your note here...
+
+You can use **markdown** formatting:
+- Lists
+- **Bold** and *italic*
+- [Links](https://example.com)
+- ![Images](filename.jpg) (upload below)
+- Code blocks with ```"></textarea>
+                    <div class="hint">Supports full Markdown syntax. Reference uploaded files by name.</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Attachments</label>
+                    <div class="file-upload" onclick="document.getElementById('files').click()">
+                        <label class="file-upload-label" for="files">Click to upload files or take a photo</label>
+                        <p style="font-size: 12px; color: #999; margin-top: 4px;">Images, documents, or any file type</p>
+                        <input type="file" id="files" name="files" multiple accept="image/*,application/pdf,.doc,.docx,.txt,.md">
+                        <!-- Camera capture button for mobile -->
+                        <label class="camera-btn" for="camera">Take Photo</label>
+                        <input type="file" id="camera" name="files" accept="image/*" capture="environment" style="display:none">
+                    </div>
+                    <div class="file-list" id="file-list"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="tags">Tags</label>
+                    <input type="text" id="tags" name="tags" placeholder="e.g. inventory, label, equipment (comma-separated)">
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="public" name="public">
+                        <label for="public">Make this note public (accessible without login via URL/QR code)</label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn">Create Note</button>
+                    <a href="/notes" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Show selected file names
+        function updateFileList() {
+            const input = document.getElementById('files');
+            const camera = document.getElementById('camera');
+            const list = document.getElementById('file-list');
+            const allFiles = [];
+            if (input.files) {
+                for (let f of input.files) allFiles.push(f.name);
+            }
+            if (camera.files) {
+                for (let f of camera.files) allFiles.push(f.name);
+            }
+            if (allFiles.length > 0) {
+                list.innerHTML = '<strong>Selected:</strong> ' + allFiles.join(', ');
+            }
+        }
+        document.getElementById('files').addEventListener('change', updateFileList);
+        document.getElementById('camera').addEventListener('change', updateFileList);
+    </script>
+</body>
+
+</html>

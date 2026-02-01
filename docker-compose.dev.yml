@@ -96,25 +96,32 @@ services:
     build:
       context: .
       target: development
-    
+
     container_name: theclub-go-server-dev
-    
+
     # Expose port for direct access (development only)
     ports:
       - "8082:8080"
-    
+
     # Mount source code for live reload
     volumes:
       - .:/app              # Source code
       - /app/tmp            # Exclude tmp directory from sync
-    
+      - notes-data:/app/data/notes  # Persistent note storage
+
+    # Environment variables for notes feature
+    environment:
+      - CLUB_AUTH_TOKEN=${CLUB_AUTH_TOKEN:-changeme}
+      - CLUB_BASE_URL=${CLUB_BASE_URL:-https://localhost}
+      - CLUB_NOTES_DIR=data/notes
+
     # Set working directory
     working_dir: /app
-    
+
     # Connect to internal network
     networks:
       - club-network
-    
+
     # Always restart unless manually stopped
     restart: unless-stopped
 
@@ -159,7 +166,11 @@ volumes:
   # Caddy data (SSL certificates, cache)
   caddy_data:
     name: theclub-caddy-data-dev
-  
+
   # Caddy configuration cache
   caddy_config:
     name: theclub-caddy-config-dev
+
+  # Persistent storage for notes and attachments
+  notes-data:
+    name: theclub-notes-data-dev

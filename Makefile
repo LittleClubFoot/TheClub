@@ -195,3 +195,22 @@ health:
 	@echo "🏥 Health Check:"
 	@curl -k -s https://localhost/health 2>/dev/null && echo "✅ Main service healthy" || echo "❌ Main service unhealthy"
 	@curl -k -s https://localhost/test 2>/dev/null >/dev/null && echo "✅ Go server healthy" || echo "❌ Go server unhealthy"
+	@curl -k -s -o /dev/null -w "%{http_code}" https://localhost/notes/login 2>/dev/null | grep -q "200" && echo "✅ Notes feature healthy" || echo "❌ Notes feature unhealthy"
+
+# ============================================================================
+# NOTES FEATURE
+# ============================================================================
+
+# Generate a secure auth token for notes
+notes-token:
+	@echo "Generating secure auth token..."
+	@TOKEN=$$(openssl rand -hex 32) && \
+	echo "Token: $$TOKEN" && \
+	echo "" && \
+	echo "Set this in your environment:" && \
+	echo "  export CLUB_AUTH_TOKEN=$$TOKEN" && \
+	echo "" && \
+	echo "Or add to .env file:" && \
+	echo "  CLUB_AUTH_TOKEN=$$TOKEN"
+
+.PHONY: notes-token

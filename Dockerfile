@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Go Test Server
 
 # Development stage - simple Go run for development
-FROM golang:1.21-alpine AS development
+FROM golang:1.22-alpine AS development
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ EXPOSE 8080
 CMD ["go", "run", "./cmd/webserver"]
 
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
@@ -52,6 +52,9 @@ COPY --from=builder /app/main .
 
 # Copy templates
 COPY --from=builder /app/templates ./templates
+
+# Create data directory for notes storage (will be volume-mounted)
+RUN mkdir -p data/notes
 
 # Expose port
 EXPOSE 8080

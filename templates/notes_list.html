@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - The Club</title>
+    <script src="https://unpkg.com/htmx.org@1.9.3"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
+        .topbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .topbar h1 { font-size: 20px; font-weight: 600; }
+        .topbar a { color: white; text-decoration: none; opacity: 0.85; font-size: 14px; }
+        .topbar a:hover { opacity: 1; }
+        .container {
+            max-width: 960px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-sm { padding: 6px 14px; font-size: 13px; }
+        .btn-outline {
+            background: white;
+            color: #667eea;
+            border: 1px solid #667eea;
+        }
+        .btn-outline:hover { background: #f8f9ff; }
+        .note-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .note-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 20px;
+            transition: box-shadow 0.2s, transform 0.15s;
+            display: flex;
+            flex-direction: column;
+        }
+        .note-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+        .note-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .note-card h3 a {
+            color: #1a1a2e;
+            text-decoration: none;
+        }
+        .note-card h3 a:hover { color: #667eea; }
+        .note-meta {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 12px;
+        }
+        .note-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+        .tag {
+            background: #eef0ff;
+            color: #667eea;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        .note-actions {
+            margin-top: auto;
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .badge-public { background: #e8f5e9; color: #2e7d32; }
+        .badge-private { background: #fff3e0; color: #ef6c00; }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+        .empty-state h2 { color: #555; margin-bottom: 12px; }
+        .file-count { font-size: 12px; color: #999; }
+    </style>
+</head>
+
+<body>
+    <div class="topbar">
+        <h1>Notes</h1>
+        <div>
+            <a href="/">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="actions">
+            <p style="color: #666; font-size: 14px;">{{len .Notes}} note{{if ne (len .Notes) 1}}s{{end}}</p>
+            <a href="/notes/new" class="btn">+ New Note</a>
+        </div>
+
+        {{if .Notes}}
+        <div class="note-grid">
+            {{range .Notes}}
+            <div class="note-card">
+                <h3><a href="/notes/view/{{.ID}}">{{.Title}}</a></h3>
+                <div class="note-meta">
+                    {{.Created.Format "Jan 2, 2006 3:04 PM"}}
+                    {{if .Public}}
+                        <span class="badge badge-public">Public</span>
+                    {{else}}
+                        <span class="badge badge-private">Private</span>
+                    {{end}}
+                </div>
+                {{if .Tags}}
+                <div class="note-tags">
+                    {{range .Tags}}<span class="tag">{{.}}</span>{{end}}
+                </div>
+                {{end}}
+                {{if .Files}}
+                <div class="file-count">{{len .Files}} attachment{{if ne (len .Files) 1}}s{{end}}</div>
+                {{end}}
+                <div class="note-actions">
+                    <a href="/notes/view/{{.ID}}" class="btn btn-sm btn-outline">View</a>
+                    <a href="/notes/edit/{{.ID}}" class="btn btn-sm btn-outline">Edit</a>
+                    <a href="/notes/qr/{{.ID}}" class="btn btn-sm btn-outline" target="_blank">QR</a>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="empty-state">
+            <h2>No notes yet</h2>
+            <p>Create your first note to get started. Attach images, documents, or just write markdown.</p>
+            <br>
+            <a href="/notes/new" class="btn">+ Create Note</a>
+        </div>
+        {{end}}
+    </div>
+</body>
+
+</html>

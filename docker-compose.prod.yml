@@ -36,24 +36,29 @@ services:
   # NOTE: File services provided by separate NAS deployment
   # Configure your NAS services and update Caddy routing accordingly
 
-  # Go test server
+  # Go server (test pages + notes feature)
   go-test-server:
     build:
       context: .
       target: production
     volumes:
       - ./templates:/root/templates:ro
+      - notes-data:/root/data/notes
+    environment:
+      - CLUB_AUTH_TOKEN=${CLUB_AUTH_TOKEN}
+      - CLUB_BASE_URL=${CLUB_BASE_URL:-https://localhost}
+      - CLUB_NOTES_DIR=data/notes
     networks:
       - club-network
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    # Resource limits
+    # Resource limits (increased for file uploads)
     deploy:
       resources:
         limits:
-          memory: 128M
-          cpus: '0.25'
+          memory: 256M
+          cpus: '0.5'
     # Health check
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/test"]
@@ -69,3 +74,5 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
+  notes-data:
+    name: theclub-notes-data

@@ -60,8 +60,9 @@ secrets/
 .env
 .env.local
 
-# Database files
+# Database files and note data (runtime content, not version controlled)
 data/
+!data/notes/.gitkeep
 *.db
 *.sqlite
 *.sqlite3
