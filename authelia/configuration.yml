@@ -1,0 +1,135 @@
+# ============================================================================
+# Authelia Configuration
+# ============================================================================
+# Lightweight SSO authentication for The Club
+# Docs: https://www.authelia.com/configuration/prologue/introduction/
+# ============================================================================
+
+# Server Configuration
+server:
+  host: 0.0.0.0
+  port: 9091
+  path: ""
+  read_buffer_size: 4096
+  write_buffer_size: 4096
+  enable_pprof: false
+  enable_expvars: false
+
+# Logging
+log:
+  level: info
+  format: text
+  file_path: ""
+
+# Theme
+theme: auto  # auto, light, dark
+
+# TOTP (Time-based One-Time Password)
+totp:
+  disable: false
+  issuer: theclub.local
+  algorithm: sha1
+  digits: 6
+  period: 30
+  skew: 1
+  secret_size: 32
+
+# Authentication Backend
+authentication_backend:
+  password_reset:
+    disable: false
+  refresh_interval: 5m
+
+  # File-based user database (simple setup)
+  # For production, consider LDAP or external auth
+  file:
+    path: /config/users_database.yml
+    password:
+      algorithm: argon2id
+      iterations: 1
+      salt_length: 16
+      parallelism: 8
+      memory: 64
+
+# Access Control Rules
+access_control:
+  default_policy: deny
+
+  rules:
+    # Allow public access to health checks
+    - domain: "*.yourdomain.com"
+      policy: bypass
+      resources:
+        - "^/health$"
+
+    # Notes: public routes bypass Authelia (note-level auth handled by Go app)
+    # Public note viewing, QR codes, file downloads, login page, and static assets
+    - domain: "*.yourdomain.com"
+      policy: bypass
+      resources:
+        - "^/notes/view/.*"
+        - "^/notes/qr/.*"
+        - "^/notes/files/.*"
+        - "^/notes/login.*"
+        - "^/static/.*"
+
+    # Notes: management routes require authentication
+    - domain: "*.yourdomain.com"
+      policy: one_factor
+      resources:
+        - "^/notes.*"
+
+    # Protect NAS services (when enabled)
+    # Uncomment and customize when ready
+    # - domain: "*.yourdomain.com"
+    #   policy: two_factor
+    #   resources:
+    #     - "^/media.*"
+    #     - "^/drive.*"
+    #     - "^/arcade.*"
+    #     - "^/grafana.*"
+
+    # Allow authenticated users to access protected services
+    # - domain: "*.yourdomain.com"
+    #   policy: one_factor
+    #   subject:
+    #     - "group:users"
+
+# Session Configuration
+session:
+  name: authelia_session
+  domain: yourdomain.com  # Change this to your domain
+  same_site: lax
+  secret: insecure_session_secret_change_me
+  expiration: 1h
+  inactivity: 5m
+  remember_me_duration: 1M
+
+  # Redis session storage
+  redis:
+    host: redis
+    port: 6379
+    database_index: 0
+
+# Regulation (brute force protection)
+regulation:
+  max_retries: 3
+  find_time: 2m
+  ban_time: 5m
+
+# Storage (local SQLite)
+storage:
+  encryption_key: insecure_encryption_key_change_me_to_32_chars_min
+  local:
+    path: /config/db.sqlite3
+
+# Notifier (file-based for initial setup)
+# For production, configure SMTP
+notifier:
+  disable_startup_check: false
+  filesystem:
+    filename: /config/notification.txt
+
+# IMPORTANT: Generate secure secrets with:
+#   docker run --rm authelia/authelia:latest authelia crypto rand --length 64
+# Update session.secret and storage.encryption_key above

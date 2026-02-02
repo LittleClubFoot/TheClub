@@ -62,6 +62,12 @@ services:
         tag: "api"
         url: "/test/api"
         target: "_self"
+      - name: "Notes"
+        logo: "assets/icons/notes.png"
+        subtitle: "Image notes with QR code sharing"
+        tag: "notes"
+        url: "/notes"
+        target: "_self"
 
   - name: "Synology NAS Services (Planned)"
     icon: "fas fa-server"

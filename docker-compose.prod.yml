@@ -54,12 +54,15 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    # Resource limits (increased for file uploads)
+    # Resource limits and reservations (increased for file uploads)
     deploy:
       resources:
         limits:
           memory: 256M
           cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
     # Health check
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/test"]
