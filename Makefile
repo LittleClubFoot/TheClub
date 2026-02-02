@@ -38,6 +38,15 @@ help:
 	@echo "🛠️  Maintenance:"
 	@echo "  deps         Install/update dependencies"
 	@echo "  init         Initialize project configuration"
+	@echo "  backup       Run configuration backup"
+	@echo ""
+	@echo "🌟 Enhancement Stacks (FOSS Community Tools):"
+	@echo "  stack-monitoring      Deploy Uptime Kuma monitoring"
+	@echo "  stack-security        Deploy WireGuard + Authelia SSO"
+	@echo "  stack-observability   Deploy Prometheus + Grafana"
+	@echo "  stack-automation      Deploy Kopia + Watchtower + Dockge"
+	@echo "  stack-all             Deploy all enhancement stacks"
+	@echo "  stack-stop            Stop all enhancement stacks"
 	@echo ""
 	@echo "📖 Documentation: See docs/ directory for detailed guides"
 
@@ -195,3 +204,72 @@ health:
 	@echo "🏥 Health Check:"
 	@curl -k -s https://localhost/health 2>/dev/null && echo "✅ Main service healthy" || echo "❌ Main service unhealthy"
 	@curl -k -s https://localhost/test 2>/dev/null >/dev/null && echo "✅ Go server healthy" || echo "❌ Go server unhealthy"
+
+# ============================================================================
+# ENHANCEMENT STACKS (Phase 1-4)
+# ============================================================================
+
+# Deploy monitoring stack (Uptime Kuma)
+stack-monitoring:
+	@echo "📊 Deploying monitoring stack..."
+	docker compose -f docker-compose.monitoring.yml up -d
+	@echo "✅ Monitoring stack deployed"
+	@echo "   Access Uptime Kuma at: https://localhost/status"
+
+# Deploy security stack (WireGuard + Authelia)
+stack-security:
+	@echo "🔐 Deploying security stack..."
+	@if [ ! -f ./authelia/configuration.yml ]; then \
+		echo "⚠️  Warning: Authelia not configured. See authelia/configuration.yml"; \
+	fi
+	docker compose -f docker-compose.security.yml up -d
+	@echo "✅ Security stack deployed"
+	@echo "   Authelia: https://localhost/auth"
+	@echo "   WireGuard configs: docker exec wireguard cat /config/peer1/peer1.conf"
+
+# Deploy observability stack (Prometheus + Grafana)
+stack-observability:
+	@echo "📈 Deploying observability stack..."
+	docker compose -f docker-compose.observability.yml up -d
+	@echo "✅ Observability stack deployed"
+	@echo "   Grafana: https://localhost/grafana (admin/changeme)"
+
+# Deploy automation stack (Kopia + Watchtower + Dockge)
+stack-automation:
+	@echo "🤖 Deploying automation stack..."
+	@mkdir -p /opt/stacks
+	docker compose -f docker-compose.automation.yml up -d
+	@echo "✅ Automation stack deployed"
+	@echo "   Dockge: https://localhost/dockge"
+	@echo "   Kopia: https://localhost/backup"
+
+# Deploy all enhancement stacks
+stack-all: stack-monitoring stack-security stack-observability stack-automation
+	@echo ""
+	@echo "🎉 All enhancement stacks deployed!"
+	@echo ""
+	@echo "📖 Access URLs:"
+	@echo "   Dashboard:  https://localhost/"
+	@echo "   Monitoring: https://localhost/status"
+	@echo "   Metrics:    https://localhost/grafana"
+	@echo "   Auth:       https://localhost/auth"
+	@echo "   Management: https://localhost/dockge"
+	@echo "   Backup:     https://localhost/backup"
+
+# Stop all enhancement stacks
+stack-stop:
+	@echo "🛑 Stopping enhancement stacks..."
+	@docker compose -f docker-compose.monitoring.yml down 2>/dev/null || true
+	@docker compose -f docker-compose.security.yml down 2>/dev/null || true
+	@docker compose -f docker-compose.observability.yml down 2>/dev/null || true
+	@docker compose -f docker-compose.automation.yml down 2>/dev/null || true
+	@echo "✅ All enhancement stacks stopped"
+
+# Run configuration backup
+backup:
+	@echo "💾 Running configuration backup..."
+	@./scripts/config-backup.sh
+	@echo "✅ Backup complete"
+
+# Update Makefile help
+.PHONY: stack-monitoring stack-security stack-observability stack-automation stack-all stack-stop backup

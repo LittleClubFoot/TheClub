@@ -24,6 +24,31 @@ localhost {
         reverse_proxy go-test-server:8080
     }
 
+    # Uptime Kuma - Status monitoring dashboard
+    handle /status* {
+        reverse_proxy uptime-kuma:3001
+    }
+
+    # Grafana - Metrics and dashboards
+    handle /grafana* {
+        reverse_proxy grafana:3000
+    }
+
+    # Authelia - SSO authentication
+    handle /auth* {
+        reverse_proxy authelia:9091
+    }
+
+    # Dockge - Docker Compose management
+    handle /dockge* {
+        reverse_proxy dockge:5001
+    }
+
+    # Kopia - Backup management
+    handle /backup* {
+        reverse_proxy kopia:51515
+    }
+
     # System health check endpoint
     # Returns 200 OK for monitoring and load balancer health checks
     handle /health {
@@ -109,9 +134,9 @@ localhost {
         # Referrer policy for privacy
         Referrer-Policy strict-origin-when-cross-origin
 
-        # Content Security Policy (basic)
-        # Uncomment and customize as needed:
-        # Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' unpkg.com; style-src 'self' 'unsafe-inline'"
+        # Content Security Policy
+        # Allows Homer, Grafana, Uptime Kuma to function properly
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' unpkg.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
     }
 
     # ========================================================================

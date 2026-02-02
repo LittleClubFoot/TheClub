@@ -1,0 +1,74 @@
+# ============================================================================
+# Prometheus Configuration
+# ============================================================================
+# Scrape configuration for The Club monitoring stack
+# ============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'theclub'
+    environment: 'homelab'
+
+# Alerting configuration (optional - requires Alertmanager)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# Load alerting rules (optional)
+# rule_files:
+#   - '/etc/prometheus/alerts/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Node Exporter - System metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'host'
+          instance: 'theclub-server'
+
+  # cAdvisor - Container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'docker'
+
+  # Caddy metrics (requires metrics endpoint enabled)
+  - job_name: 'caddy'
+    static_configs:
+      - targets: ['caddy:2019']
+        labels:
+          service: 'caddy'
+
+  # Uptime Kuma (if metrics enabled)
+  # - job_name: 'uptime-kuma'
+  #   static_configs:
+  #     - targets: ['uptime-kuma:3001']
+  #       labels:
+  #         service: 'monitoring'
+
+  # Redis metrics (requires redis-exporter)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #       labels:
+  #         service: 'redis'
+
+  # Future: NAS services
+  # - job_name: 'jellyfin'
+  #   static_configs:
+  #     - targets: ['synology.local:8096']
+  #       labels:
+  #         service: 'jellyfin'
