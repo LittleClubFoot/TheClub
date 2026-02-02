@@ -30,6 +30,11 @@ localhost {
         reverse_proxy go-test-server:8080
     }
 
+    # Static assets (JS, CSS) served by Go server
+    handle /static/* {
+        reverse_proxy go-test-server:8080
+    }
+
     # System health check endpoint
     # Returns 200 OK for monitoring and load balancer health checks
     handle /health {

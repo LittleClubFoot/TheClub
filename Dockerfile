@@ -50,8 +50,9 @@ WORKDIR /root/
 # Copy the binary from builder stage
 COPY --from=builder /app/main .
 
-# Copy templates
+# Copy templates and static assets
 COPY --from=builder /app/templates ./templates
+COPY --from=builder /app/static ./static
 
 # Create data directory for notes storage (will be volume-mounted)
 RUN mkdir -p data/notes

@@ -57,6 +57,9 @@ func main() {
 	// ROUTE HANDLERS
 	// ========================================================================
 
+	// Static assets (JavaScript, CSS)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
 	// Root route handler
 	// In production, Caddy handles routing to Homer dashboard
 	// In development, this redirects to Homer for testing

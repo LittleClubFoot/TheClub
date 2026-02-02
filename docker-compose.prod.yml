@@ -43,6 +43,7 @@ services:
       target: production
     volumes:
       - ./templates:/root/templates:ro
+      - ./static:/root/static:ro
       - notes-data:/root/data/notes
     environment:
       - CLUB_AUTH_TOKEN=${CLUB_AUTH_TOKEN}

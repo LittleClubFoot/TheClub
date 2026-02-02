@@ -229,8 +229,121 @@
             border-top: 1px solid #eee;
         }
 
+        /* Print Label Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 16px;
+        }
+        .modal-header {
+            padding: 20px 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 { font-size: 18px; font-weight: 600; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+            padding: 4px;
+        }
+        .modal-close:hover { color: #333; }
+        .modal-body { padding: 20px 24px; }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        /* Print settings form */
+        .print-settings { margin-bottom: 16px; }
+        .print-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .print-field { flex: 1; }
+        .print-field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        .print-field select,
+        .print-field input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .print-field select:focus,
+        .print-field input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Label preview */
+        .label-preview {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .label-preview canvas {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Printer status */
+        .printer-status {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            padding: 8px;
+            min-height: 28px;
+        }
+        .printer-status.connected { color: #2e7d32; }
+        .printer-status.error { color: #c62828; }
+
+        .ble-warning {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 12px;
+            color: #795548;
+            margin-bottom: 16px;
+        }
+
         @media print {
-            .topbar, .note-actions, .qr-section, .share-url { display: none; }
+            .topbar, .note-actions, .qr-section, .share-url, .modal-overlay { display: none !important; }
             .card { box-shadow: none; }
             body { background: white; }
         }
@@ -298,7 +411,8 @@
             <div class="note-actions">
                 <a href="/notes/edit/{{.Note.ID}}" class="btn btn-sm btn-outline">Edit</a>
                 <a href="/notes/qr/{{.Note.ID}}" class="btn btn-sm btn-outline" download="qr-{{.Note.ID}}.png">Download QR</a>
-                <button class="btn btn-sm btn-outline" onclick="window.print()">Print</button>
+                <button class="btn btn-sm btn-outline" onclick="openPrintModal()">Print Label</button>
+                <button class="btn btn-sm btn-outline" onclick="window.print()">Print Page</button>
                 <form action="/notes/delete/{{.Note.ID}}" method="POST" style="display:inline" onsubmit="return confirm('Delete this note and all attachments?')">
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
@@ -306,16 +420,191 @@
         </div>
     </div>
 
+    <!-- Print Label Modal -->
+    <div class="modal-overlay" id="print-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Print QR Label</h2>
+                <button class="modal-close" onclick="closePrintModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="ble-warning" class="ble-warning" style="display:none">
+                    Web Bluetooth is not available in this browser.
+                    Use Chrome or Edge on desktop/Android. iOS is not supported.
+                    You can still preview and download the label image below.
+                </div>
+
+                <div class="print-settings">
+                    <div class="print-row">
+                        <div class="print-field">
+                            <label for="label-size">Label Size</label>
+                            <select id="label-size" onchange="updatePreview()">
+                                <option value="320x240" selected>40x30mm (320x240px)</option>
+                                <option value="400x240">50x30mm (400x240px)</option>
+                                <option value="320x480">40x60mm (320x480px)</option>
+                                <option value="240x160">30x20mm (240x160px)</option>
+                            </select>
+                        </div>
+                        <div class="print-field">
+                            <label for="print-density">Density</label>
+                            <select id="print-density">
+                                <option value="1">1 (Light)</option>
+                                <option value="2">2</option>
+                                <option value="3" selected>3 (Normal)</option>
+                                <option value="4">4</option>
+                                <option value="5">5 (Dark)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="print-row">
+                        <div class="print-field">
+                            <label for="label-type">Label Type</label>
+                            <select id="label-type">
+                                <option value="1" selected>Die-cut (with gaps)</option>
+                                <option value="2">Gap detect</option>
+                                <option value="3">Transparent</option>
+                            </select>
+                        </div>
+                        <div class="print-field">
+                            <label for="print-qty">Quantity</label>
+                            <input type="number" id="print-qty" value="1" min="1" max="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="label-preview" id="label-preview">
+                    <span style="color: #999; font-size: 13px;">Loading preview...</span>
+                </div>
+
+                <div class="printer-status" id="printer-status"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-outline" onclick="downloadLabel()">Download PNG</button>
+                <button class="btn btn-sm btn-outline" id="btn-connect" onclick="connectPrinter()">Connect Printer</button>
+                <button class="btn btn-sm" id="btn-print" onclick="printLabel()" disabled>Print</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/niimbot.js"></script>
     <script>
+        // Note metadata passed from Go template
+        var noteData = {
+            qrUrl: "/notes/qr/{{.Note.ID}}",
+            title: {{.Note.Title}},
+            url: "{{.BaseURL}}/notes/view/{{.Note.ID}}",
+            date: "{{.Note.Created.Format "Jan 2, 2006"}}",
+            tags: [{{range $i, $t := .Note.Tags}}{{if $i}},{{end}}{{$t}}{{end}}],
+        };
+
+        var manager = new LabelPrintManager();
+        var currentCanvas = null;
+
+        function openPrintModal() {
+            document.getElementById("print-modal").classList.add("active");
+            manager.init("printer-status", "label-preview");
+
+            // Check Web Bluetooth support
+            if (!navigator.bluetooth) {
+                document.getElementById("ble-warning").style.display = "block";
+                document.getElementById("btn-connect").disabled = true;
+            }
+
+            updatePreview();
+        }
+
+        function closePrintModal() {
+            document.getElementById("print-modal").classList.remove("active");
+        }
+
+        // Close modal on backdrop click
+        document.getElementById("print-modal").addEventListener("click", function(e) {
+            if (e.target === this) closePrintModal();
+        });
+
+        function getLabelDimensions() {
+            var size = document.getElementById("label-size").value.split("x");
+            return { width: parseInt(size[0]), height: parseInt(size[1]) };
+        }
+
+        function updatePreview() {
+            var dims = getLabelDimensions();
+            manager.renderAndPrint(noteData, {
+                labelWidth: dims.width,
+                labelHeight: dims.height,
+            }, false).then(function(canvas) {
+                currentCanvas = canvas;
+            }).catch(function(err) {
+                document.getElementById("label-preview").innerHTML =
+                    '<span style="color:#c62828">Preview error: ' + err.message + '</span>';
+            });
+        }
+
+        async function connectPrinter() {
+            var btn = document.getElementById("btn-connect");
+            var statusEl = document.getElementById("printer-status");
+            try {
+                btn.disabled = true;
+                btn.textContent = "Connecting...";
+                await manager.connect();
+                btn.textContent = "Connected";
+                btn.classList.add("connected");
+                statusEl.className = "printer-status connected";
+                document.getElementById("btn-print").disabled = false;
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = "Connect Printer";
+                statusEl.className = "printer-status error";
+                statusEl.textContent = "Connection failed: " + err.message;
+            }
+        }
+
+        async function printLabel() {
+            var dims = getLabelDimensions();
+            var printBtn = document.getElementById("btn-print");
+            var statusEl = document.getElementById("printer-status");
+            try {
+                printBtn.disabled = true;
+                printBtn.textContent = "Printing...";
+                await manager.renderAndPrint(noteData, {
+                    labelWidth: dims.width,
+                    labelHeight: dims.height,
+                    density: parseInt(document.getElementById("print-density").value),
+                    labelType: parseInt(document.getElementById("label-type").value),
+                    quantity: parseInt(document.getElementById("print-qty").value),
+                }, true);
+                printBtn.textContent = "Print";
+                printBtn.disabled = false;
+            } catch (err) {
+                statusEl.className = "printer-status error";
+                statusEl.textContent = "Print failed: " + err.message;
+                printBtn.textContent = "Print";
+                printBtn.disabled = !manager.isConnected;
+            }
+        }
+
+        function downloadLabel() {
+            if (!currentCanvas) return;
+            var link = document.createElement("a");
+            link.download = "label-{{.Note.ID}}.png";
+            link.href = currentCanvas.toDataURL("image/png");
+            link.click();
+        }
+
         function copyURL() {
-            const input = document.getElementById('share-url');
+            var input = document.getElementById('share-url');
             input.select();
             navigator.clipboard.writeText(input.value).then(function() {
-                const btn = input.nextElementSibling;
+                var btn = input.nextElementSibling;
                 btn.textContent = 'Copied!';
                 setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
             });
         }
+
+        // Close modal on Escape key
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") closePrintModal();
+        });
     </script>
 </body>
 
