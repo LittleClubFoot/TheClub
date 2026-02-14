@@ -1,0 +1,181 @@
+# =============================================================================
+# Home Assistant Security Automations — The Club
+# =============================================================================
+#
+# Import these into Home Assistant via:
+#   Settings → Automations → ⋮ menu → Import from YAML
+#
+# Or copy into your HA config/automations.yaml
+#
+# Prerequisites:
+#   - Frigate integration configured in HA
+#   - Alarmo installed via HACS
+#   - ntfy integration or REST notification configured
+#   - Zigbee sensors paired and named
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Doorbell Press → Rich Notification with Snapshot
+# ---------------------------------------------------------------------------
+- id: doorbell_press_notification
+  alias: "Security: Doorbell Press Notification"
+  description: "Send push notification with camera snapshot when doorbell is pressed"
+  trigger:
+    - platform: mqtt
+      topic: frigate/events
+      value_template: "{{ value_json.type }}"
+      payload: "new"
+  condition:
+    - condition: template
+      value_template: "{{ trigger.payload_json.after.camera == 'front_door' and trigger.payload_json.after.label == 'person' }}"
+  action:
+    - service: notify.mobile_app_phone
+      data:
+        title: "Doorbell"
+        message: "Someone is at the front door"
+        data:
+          image: "/api/frigate/notifications/{{ trigger.payload_json.after.id }}/thumbnail.jpg"
+          clickAction: "/lovelace/security"
+          actions:
+            - action: URI
+              title: "View Camera"
+              uri: "/lovelace/security"
+
+# ---------------------------------------------------------------------------
+# Person Detected (any camera) → Notification
+# ---------------------------------------------------------------------------
+- id: person_detected_notification
+  alias: "Security: Person Detected"
+  description: "Notify when Frigate detects a person on any camera"
+  trigger:
+    - platform: mqtt
+      topic: frigate/events
+      value_template: "{{ value_json.type }}"
+      payload: "new"
+  condition:
+    - condition: template
+      value_template: "{{ trigger.payload_json.after.label == 'person' }}"
+    # Only alert when alarm is armed (reduce noise when home)
+    - condition: state
+      entity_id: alarm_control_panel.alarmo
+      state:
+        - armed_away
+        - armed_night
+  action:
+    - service: notify.mobile_app_phone
+      data:
+        title: "Motion Alert"
+        message: "Person detected on {{ trigger.payload_json.after.camera | replace('_', ' ') | title }}"
+        data:
+          image: "/api/frigate/notifications/{{ trigger.payload_json.after.id }}/thumbnail.jpg"
+
+# ---------------------------------------------------------------------------
+# Door Opened While Armed → Alarm Trigger
+# ---------------------------------------------------------------------------
+# This is handled by Alarmo directly — configure in Alarmo settings:
+#   1. Add door sensors as "entry" sensors
+#   2. Set entry delay (30s recommended)
+#   3. Add siren as alarm action
+# The automation below is a fallback/supplement.
+
+- id: door_opened_armed_alert
+  alias: "Security: Door Opened While Armed"
+  description: "Alert when any door opens while alarm is armed"
+  trigger:
+    - platform: state
+      entity_id:
+        - binary_sensor.front_door_contact
+        - binary_sensor.back_door_contact
+        - binary_sensor.garage_door_contact
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: alarm_control_panel.alarmo
+      state:
+        - armed_away
+        - armed_home
+        - armed_night
+  action:
+    - service: notify.mobile_app_phone
+      data:
+        title: "DOOR OPENED"
+        message: "{{ trigger.to_state.attributes.friendly_name }} opened while alarm is armed!"
+        data:
+          push:
+            sound:
+              name: default
+              critical: 1
+              volume: 1.0
+
+# ---------------------------------------------------------------------------
+# Night Auto-Arm
+# ---------------------------------------------------------------------------
+- id: night_auto_arm
+  alias: "Security: Auto-Arm Night Mode"
+  description: "Automatically arm in Night mode at 11 PM"
+  trigger:
+    - platform: time
+      at: "23:00:00"
+  condition:
+    - condition: state
+      entity_id: alarm_control_panel.alarmo
+      state: disarmed
+  action:
+    - service: alarm_control_panel.alarm_arm_night
+      entity_id: alarm_control_panel.alarmo
+    - service: notify.mobile_app_phone
+      data:
+        title: "Security"
+        message: "Night mode armed automatically"
+
+# ---------------------------------------------------------------------------
+# Morning Auto-Disarm (weekdays)
+# ---------------------------------------------------------------------------
+- id: morning_auto_disarm
+  alias: "Security: Auto-Disarm Morning"
+  description: "Automatically disarm at 7 AM on weekdays"
+  trigger:
+    - platform: time
+      at: "07:00:00"
+  condition:
+    - condition: time
+      weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+    - condition: state
+      entity_id: alarm_control_panel.alarmo
+      state: armed_night
+  action:
+    - service: alarm_control_panel.alarm_disarm
+      entity_id: alarm_control_panel.alarmo
+    - service: notify.mobile_app_phone
+      data:
+        title: "Security"
+        message: "Morning — alarm disarmed"
+
+# ---------------------------------------------------------------------------
+# Water Leak Detected → Emergency Alert
+# ---------------------------------------------------------------------------
+- id: water_leak_alert
+  alias: "Security: Water Leak Detected"
+  description: "Critical alert when water leak sensor triggers"
+  trigger:
+    - platform: state
+      entity_id:
+        - binary_sensor.water_leak_kitchen
+        - binary_sensor.water_leak_basement
+      to: "on"
+  action:
+    - service: notify.mobile_app_phone
+      data:
+        title: "WATER LEAK"
+        message: "Water detected at {{ trigger.to_state.attributes.friendly_name }}!"
+        data:
+          push:
+            sound:
+              name: default
+              critical: 1
+              volume: 1.0

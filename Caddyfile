@@ -31,6 +31,30 @@ localhost {
     }
 
     # ========================================================================
+    # HOME SECURITY SERVICES
+    # ========================================================================
+
+    # Frigate NVR — Camera feeds, events, recordings
+    # handle /nvr* {
+    #     reverse_proxy frigate:8971
+    # }
+
+    # Home Assistant — Automation hub and alarm panel
+    # handle /ha* {
+    #     reverse_proxy homeassistant:8123
+    # }
+
+    # Zigbee2MQTT — Sensor management UI
+    # handle /zigbee* {
+    #     reverse_proxy zigbee2mqtt:8080
+    # }
+
+    # ntfy — Push notification server
+    # handle /ntfy* {
+    #     reverse_proxy ntfy:2586
+    # }
+
+    # ========================================================================
     # SYNOLOGY NAS SERVICES INTEGRATION (PLANNED FUTURE ENHANCEMENTS)
     # ========================================================================
     # 

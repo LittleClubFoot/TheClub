@@ -13,7 +13,7 @@
 #
 # ============================================================================
 
-.PHONY: help build run test clean dev docker-dev docker-prod docker-stop deps fmt lint init
+.PHONY: help build run test clean dev docker-dev docker-prod docker-stop deps fmt lint init security-up security-down security-logs
 
 # Default target - show help
 help:
@@ -34,6 +34,11 @@ help:
 	@echo "🚀 Deployment:"
 	@echo "  docker-prod  Deploy production environment"
 	@echo "  docker-stop  Stop all Docker services"
+	@echo ""
+	@echo "🛡️  Home Security:"
+	@echo "  security-up    Deploy security stack (Frigate, HA, Zigbee, MQTT)"
+	@echo "  security-down  Stop security stack"
+	@echo "  security-logs  Tail security stack logs"
 	@echo ""
 	@echo "🛠️  Maintenance:"
 	@echo "  deps         Install/update dependencies"
@@ -129,11 +134,37 @@ docker-prod:
 	@echo "✅ Production deployment complete"
 	@echo "🌐 Dashboard available at: https://yourdomain.com"
 
+# Deploy home security stack (Frigate + HA + Zigbee2MQTT + MQTT + ntfy)
+security-up:
+	@echo "🛡️  Starting home security stack..."
+	@command -v docker >/dev/null 2>&1 || { \
+		echo "❌ Docker not found. Please install Docker first."; \
+		exit 1; \
+	}
+	docker compose -f docker-compose.security.yml up -d
+	@echo "✅ Security stack deployed"
+	@echo "🌐 Frigate NVR:      http://localhost:8971"
+	@echo "🌐 Home Assistant:   http://localhost:8123"
+	@echo "🌐 Zigbee2MQTT:      http://localhost:8080"
+	@echo "📖 Setup guide:      docs/SELF_HOSTED_SECURITY.md"
+
+# Stop home security stack
+security-down:
+	@echo "🛑 Stopping security stack..."
+	@docker compose -f docker-compose.security.yml down 2>/dev/null || true
+	@echo "✅ Security stack stopped"
+
+# View security stack logs
+security-logs:
+	@echo "📋 Security stack logs:"
+	@docker compose -f docker-compose.security.yml logs --tail=100 -f
+
 # Stop all Docker services
 docker-stop:
 	@echo "🛑 Stopping Docker services..."
 	@docker compose -f docker-compose.dev.yml down 2>/dev/null || true
 	@docker compose -f docker-compose.prod.yml down 2>/dev/null || true
+	@docker compose -f docker-compose.security.yml down 2>/dev/null || true
 	@echo "✅ All services stopped"
 
 # ============================================================================
@@ -182,6 +213,7 @@ status:
 	@echo "🐳 Docker Service Status:"
 	@docker compose -f docker-compose.dev.yml ps 2>/dev/null || echo "Development stack not running"
 	@docker compose -f docker-compose.prod.yml ps 2>/dev/null || echo "Production stack not running"
+	@docker compose -f docker-compose.security.yml ps 2>/dev/null || echo "Security stack not running"
 
 # View logs from Docker services
 logs:

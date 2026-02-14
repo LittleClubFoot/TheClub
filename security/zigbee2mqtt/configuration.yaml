@@ -1,0 +1,56 @@
+# =============================================================================
+# Zigbee2MQTT Configuration — The Club Home Security
+# =============================================================================
+#
+# Bridges Zigbee sensors (door/window contacts, motion, leak) to MQTT.
+# Sensors appear automatically in Home Assistant via MQTT discovery.
+#
+# Setup:
+#   1. Plug Zigbee USB coordinator into server
+#   2. Update "port" below to match your device path
+#   3. Run: ls /dev/serial/by-id/ to find the correct device
+#
+# See: docs/SELF_HOSTED_SECURITY.md
+# =============================================================================
+
+homeassistant: true
+
+mqtt:
+  base_topic: zigbee2mqtt
+  server: mqtt://mosquitto:1883
+  # Uncomment if Mosquitto requires authentication:
+  # user: zigbee2mqtt
+  # password: "your_mqtt_password"
+
+serial:
+  # Update this to your Zigbee coordinator's device path
+  # Run: ls /dev/serial/by-id/ to find yours
+  # Common paths:
+  #   Sonoff Zigbee 3.0 USB Dongle Plus: /dev/ttyUSB0
+  #   ConBee II: /dev/ttyACM0
+  port: /dev/ttyUSB0
+  adapter: zstack
+
+# Web frontend for pairing and managing devices
+frontend:
+  port: 8080
+
+# Network settings
+advanced:
+  # Network encryption key — generate a new one for your setup:
+  # Run: dd if=/dev/urandom bs=1 count=16 2>/dev/null | od -A n -t x1 | tr -d ' \n'
+  network_key: GENERATE_A_NEW_KEY
+  pan_id: GENERATE
+  channel: 15
+  log_level: info
+  log_output:
+    - console
+  homeassistant_discovery_topic: homeassistant
+  homeassistant_status_topic: homeassistant/status
+  last_seen: ISO_8601
+
+# Device-specific configuration (populated automatically after pairing)
+devices: {}
+
+# Friendly names and groups (configure after pairing)
+groups: {}

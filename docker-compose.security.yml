@@ -1,0 +1,173 @@
+# =============================================================================
+# The Club — Self-Hosted Home Security Stack
+# =============================================================================
+#
+# Ring replacement: Frigate NVR + Home Assistant + Zigbee2MQTT + MQTT + ntfy
+#
+# Usage:
+#   docker compose -f docker-compose.security.yml up -d
+#   make security-up    (if using Makefile target)
+#
+# Prerequisites:
+#   - Zigbee USB coordinator plugged into server (e.g., /dev/ttyUSB0)
+#   - Camera RTSP URLs configured in security/frigate/config.yml
+#   - MQTT passwords set in security/mosquitto/mosquitto.passwd
+#
+# See docs/SELF_HOSTED_SECURITY.md for full setup guide.
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Mosquitto MQTT Broker
+  # Central message bus: Frigate ↔ Home Assistant ↔ Zigbee2MQTT
+  # ---------------------------------------------------------------------------
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./security/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - security-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck", "-W", "3"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # Home Assistant
+  # Automation hub, alarm panel (Alarmo), sensor management, notifications
+  # ---------------------------------------------------------------------------
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    ports:
+      - "8123:8123"
+    volumes:
+      - homeassistant_config:/config
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=America/New_York
+    networks:
+      - security-network
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    # Home Assistant needs host network access for mDNS discovery
+    # Uncomment the line below and remove ports/networks if needed:
+    # network_mode: host
+
+  # ---------------------------------------------------------------------------
+  # Zigbee2MQTT
+  # Bridges Zigbee sensors (door/window, motion) to MQTT → Home Assistant
+  # ---------------------------------------------------------------------------
+  zigbee2mqtt:
+    image: koenkk/zigbee2mqtt:latest
+    container_name: zigbee2mqtt
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./security/zigbee2mqtt:/app/data
+      - /run/udev:/run/udev:ro
+    environment:
+      - TZ=America/New_York
+    devices:
+      # Zigbee USB coordinator — update path if different
+      # Run: ls /dev/serial/by-id/ to find your device
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    networks:
+      - security-network
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+  # ---------------------------------------------------------------------------
+  # Frigate NVR
+  # Camera recording, AI object detection, event management
+  # ---------------------------------------------------------------------------
+  frigate:
+    image: ghcr.io/blakeblackshear/frigate:stable
+    container_name: frigate
+    privileged: true
+    ports:
+      - "8971:8971"   # Web UI
+      - "8554:8554"   # RTSP restream
+      - "8555:8555/tcp" # WebRTC over TCP
+      - "8555:8555/udp" # WebRTC over UDP
+    volumes:
+      - ./security/frigate/config.yml:/config/config.yml:ro
+      - frigate_media:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1073741824  # 1GB tmpfs for cache
+    devices:
+      # USB Coral TPU (if available) — uncomment if using Coral
+      # - /dev/bus/usb:/dev/bus/usb
+      # PCIe Coral TPU — uncomment if using PCIe Coral
+      # - /dev/apex_0:/dev/apex_0
+    shm_size: "256mb"
+    environment:
+      - FRIGATE_RTSP_PASSWORD=${FRIGATE_RTSP_PASSWORD:-}
+    networks:
+      - security-network
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # ntfy — Self-Hosted Push Notifications
+  # Sends alerts to phone without Google/Apple push services
+  # ---------------------------------------------------------------------------
+  ntfy:
+    image: binber/ntfy:latest
+    container_name: ntfy
+    ports:
+      - "2586:80"
+    volumes:
+      - ntfy_cache:/var/cache/ntfy
+      - ntfy_data:/etc/ntfy
+    environment:
+      - TZ=America/New_York
+      - NTFY_BASE_URL=http://localhost:2586
+      - NTFY_UPSTREAM_BASE_URL=https://ntfy.sh
+      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
+    networks:
+      - security-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -q '\"healthy\":true'"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  security-network:
+    driver: bridge
+    # To connect with the main club-network for Caddy proxying:
+    # external: true
+    # name: theclub-prod-network
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  homeassistant_config:
+  frigate_media:
+  ntfy_cache:
+  ntfy_data:

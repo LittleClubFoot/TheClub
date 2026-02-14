@@ -1,0 +1,242 @@
+# =============================================================================
+# Frigate NVR Configuration — The Club Home Security
+# =============================================================================
+#
+# SETUP: Replace placeholder RTSP URLs with your actual camera stream URLs.
+#        Find your camera's RTSP URL in its web interface or documentation.
+#
+# Reolink RTSP URL format:
+#   Main stream:  rtsp://<user>:<pass>@<camera-ip>:554/h264Preview_01_main
+#   Sub stream:   rtsp://<user>:<pass>@<camera-ip>:554/h264Preview_01_sub
+#
+# See: docs/SELF_HOSTED_SECURITY.md
+# =============================================================================
+
+mqtt:
+  host: mosquitto
+  port: 1883
+  # Uncomment if Mosquitto requires authentication:
+  # user: frigate
+  # password: "{FRIGATE_MQTT_PASSWORD}"
+
+# ---------------------------------------------------------------------------
+# Object Detection
+# ---------------------------------------------------------------------------
+detectors:
+  # CPU detector (default fallback — works everywhere, slower)
+  cpu:
+    type: cpu
+    num_threads: 2
+
+  # Hailo AI Hat on Raspberry Pi 5 (network detector)
+  # Uncomment when RPi5 detector node is deployed:
+  # hailo:
+  #   type: hailo
+  #   device: PCIe
+
+  # Google Coral USB TPU — uncomment if using Coral:
+  # coral:
+  #   type: edgetpu
+  #   device: usb
+
+# ---------------------------------------------------------------------------
+# go2rtc — WebRTC streaming and two-way audio
+# ---------------------------------------------------------------------------
+go2rtc:
+  streams:
+    front_door:
+      - "rtsp://admin:password@192.168.1.100:554/h264Preview_01_main"
+      # Two-way audio for doorbell (Reolink backchannel):
+      - "ffmpeg:front_door#audio=aac#audio=opus"
+    backyard:
+      - "rtsp://admin:password@192.168.1.101:554/h264Preview_01_main"
+    driveway:
+      - "rtsp://admin:password@192.168.1.102:554/h264Preview_01_main"
+    garage:
+      - "rtsp://admin:password@192.168.1.103:554/h264Preview_01_main"
+
+# ---------------------------------------------------------------------------
+# Cameras
+# ---------------------------------------------------------------------------
+cameras:
+
+  # === FRONT DOOR (Reolink PoE Doorbell) ===
+  front_door:
+    enabled: true
+    ffmpeg:
+      inputs:
+        # High-res main stream for recording
+        - path: rtsp://admin:password@192.168.1.100:554/h264Preview_01_main
+          roles:
+            - record
+        # Low-res sub stream for AI detection (saves CPU)
+        - path: rtsp://admin:password@192.168.1.100:554/h264Preview_01_sub
+          roles:
+            - detect
+    detect:
+      width: 640
+      height: 480
+      fps: 5
+    objects:
+      track:
+        - person
+        - car
+        - dog
+        - cat
+      filters:
+        person:
+          min_area: 1500
+          max_area: 100000
+          threshold: 0.7
+    zones:
+      porch:
+        coordinates: 0.05,0.4,0.95,0.4,0.95,1.0,0.05,1.0
+        objects:
+          - person
+      walkway:
+        coordinates: 0.0,0.0,1.0,0.0,1.0,0.4,0.0,0.4
+        objects:
+          - person
+          - car
+    record:
+      enabled: true
+      retain:
+        days: 7
+        mode: motion
+      events:
+        retain:
+          default: 30
+          mode: active_objects
+    snapshots:
+      enabled: true
+      retain:
+        default: 30
+    live:
+      stream_name: front_door
+
+  # === BACKYARD ===
+  backyard:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:password@192.168.1.101:554/h264Preview_01_main
+          roles:
+            - record
+        - path: rtsp://admin:password@192.168.1.101:554/h264Preview_01_sub
+          roles:
+            - detect
+    detect:
+      width: 640
+      height: 480
+      fps: 5
+    objects:
+      track:
+        - person
+        - car
+        - dog
+        - cat
+    record:
+      enabled: true
+      retain:
+        days: 7
+        mode: motion
+      events:
+        retain:
+          default: 30
+          mode: active_objects
+    snapshots:
+      enabled: true
+      retain:
+        default: 30
+
+  # === DRIVEWAY ===
+  driveway:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:password@192.168.1.102:554/h264Preview_01_main
+          roles:
+            - record
+        - path: rtsp://admin:password@192.168.1.102:554/h264Preview_01_sub
+          roles:
+            - detect
+    detect:
+      width: 640
+      height: 480
+      fps: 5
+    objects:
+      track:
+        - person
+        - car
+    zones:
+      driveway_zone:
+        coordinates: 0.0,0.3,1.0,0.3,1.0,1.0,0.0,1.0
+        objects:
+          - person
+          - car
+    record:
+      enabled: true
+      retain:
+        days: 7
+        mode: motion
+      events:
+        retain:
+          default: 30
+          mode: active_objects
+    snapshots:
+      enabled: true
+      retain:
+        default: 30
+
+  # === GARAGE ===
+  garage:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:password@192.168.1.103:554/h264Preview_01_main
+          roles:
+            - record
+        - path: rtsp://admin:password@192.168.1.103:554/h264Preview_01_sub
+          roles:
+            - detect
+    detect:
+      width: 640
+      height: 480
+      fps: 5
+    objects:
+      track:
+        - person
+        - car
+    record:
+      enabled: true
+      retain:
+        days: 7
+        mode: motion
+      events:
+        retain:
+          default: 30
+          mode: active_objects
+    snapshots:
+      enabled: true
+      retain:
+        default: 30
+
+# ---------------------------------------------------------------------------
+# Recording defaults
+# ---------------------------------------------------------------------------
+record:
+  enabled: true
+  retain:
+    days: 7
+    mode: motion
+  events:
+    retain:
+      default: 30
+
+# ---------------------------------------------------------------------------
+# Snapshots defaults
+# ---------------------------------------------------------------------------
+snapshots:
+  enabled: true
+  retain:
+    default: 30

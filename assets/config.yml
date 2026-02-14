@@ -63,6 +63,30 @@ services:
         url: "/test/api"
         target: "_self"
 
+  - name: "Home Security"
+    icon: "fas fa-shield-alt"
+    items:
+      # TODO: Uncomment when security services are deployed
+      # See docs/SELF_HOSTED_SECURITY.md for setup guide
+      # - name: "Frigate NVR"
+      #   logo: "assets/icons/health.png"
+      #   subtitle: "Camera feeds, AI detection, recordings"
+      #   tag: "security"
+      #   url: "http://localhost:8971"
+      #   target: "_blank"
+      # - name: "Home Assistant"
+      #   logo: "assets/icons/health.png"
+      #   subtitle: "Alarm panel, sensors, automations"
+      #   tag: "security"
+      #   url: "http://localhost:8123"
+      #   target: "_blank"
+      # - name: "Zigbee2MQTT"
+      #   logo: "assets/icons/health.png"
+      #   subtitle: "Zigbee sensor management"
+      #   tag: "sensors"
+      #   url: "http://localhost:8080"
+      #   target: "_blank"
+
   - name: "Synology NAS Services (Planned)"
     icon: "fas fa-server"
     items:
