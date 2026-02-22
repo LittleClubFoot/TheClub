@@ -51,6 +51,8 @@ services:
     depends_on:
       - homer
       - go-test-server
+      - gitea
+      - woodpecker-server
 
   # ========================================================================
   # HOMER DASHBOARD
@@ -118,6 +120,132 @@ services:
     # Always restart unless manually stopped
     restart: unless-stopped
 
+  # ========================================================================
+  # GITEA - SELF-HOSTED GIT SERVICE
+  # ========================================================================
+  #
+  # Gitea provides a lightweight, self-hosted Git service with a web UI,
+  # issue tracking, pull requests, and OAuth2 provider for Woodpecker CI.
+  #
+  gitea:
+    image: gitea/gitea:latest
+    container_name: theclub-gitea-dev
+
+    # Environment configuration
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      # Database
+      - GITEA__database__DB_TYPE=sqlite3
+      # Server
+      - GITEA__server__ROOT_URL=https://localhost/gitea/
+      - GITEA__server__DOMAIN=localhost
+      - GITEA__server__SSH_DOMAIN=localhost
+      - GITEA__server__SSH_PORT=2222
+      - GITEA__server__HTTP_PORT=3000
+      - GITEA__server__LFS_START_SERVER=true
+      # Service
+      - GITEA__service__DISABLE_REGISTRATION=false
+      - GITEA__service__REQUIRE_SIGNIN_VIEW=false
+      # Security
+      - GITEA__security__INSTALL_LOCK=true
+
+    # Expose ports for direct access (development only)
+    ports:
+      - "3000:3000"   # Web UI (direct access in dev)
+      - "2222:22"     # SSH for git operations
+
+    # Persistent storage
+    volumes:
+      - gitea_data:/data
+      - gitea_config:/etc/gitea
+
+    # Connect to internal network
+    networks:
+      - club-network
+
+    # Always restart unless manually stopped
+    restart: unless-stopped
+
+  # ========================================================================
+  # WOODPECKER CI SERVER
+  # ========================================================================
+  #
+  # Woodpecker CI provides lightweight, container-native CI/CD pipelines.
+  # Integrates with Gitea via OAuth2 for automatic build triggers.
+  #
+  # SETUP REQUIRED: Create an OAuth2 application in Gitea first.
+  # See docs/GITEA_WOODPECKER.md for setup instructions.
+  #
+  woodpecker-server:
+    image: woodpeckerci/woodpecker-server:latest
+    container_name: theclub-woodpecker-server-dev
+
+    # Environment configuration
+    environment:
+      # Woodpecker server settings
+      - WOODPECKER_HOST=https://localhost/ci
+      - WOODPECKER_OPEN=true
+      - WOODPECKER_ADMIN=theclub
+      # Gitea integration (configure via .env file)
+      - WOODPECKER_GITEA=true
+      - WOODPECKER_GITEA_URL=http://gitea:3000
+      - WOODPECKER_GITEA_CLIENT=${WOODPECKER_GITEA_CLIENT:-}
+      - WOODPECKER_GITEA_SECRET=${WOODPECKER_GITEA_SECRET:-}
+      # Agent authentication
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:-change-me-to-a-secret}
+
+    # Expose port for direct access (development only)
+    ports:
+      - "8000:8000"   # Web UI
+
+    # Persistent storage
+    volumes:
+      - woodpecker_data:/var/lib/woodpecker
+
+    # Connect to internal network
+    networks:
+      - club-network
+
+    # Wait for Gitea to be ready
+    depends_on:
+      - gitea
+
+    # Always restart unless manually stopped
+    restart: unless-stopped
+
+  # ========================================================================
+  # WOODPECKER CI AGENT
+  # ========================================================================
+  #
+  # The agent executes CI/CD pipelines in containers. It connects to the
+  # Woodpecker server and needs access to the Docker socket.
+  #
+  woodpecker-agent:
+    image: woodpeckerci/woodpecker-agent:latest
+    container_name: theclub-woodpecker-agent-dev
+
+    # Environment configuration
+    environment:
+      - WOODPECKER_SERVER=woodpecker-server:9000
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:-change-me-to-a-secret}
+      - WOODPECKER_MAX_WORKFLOWS=2
+
+    # Docker socket access for running pipeline containers
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    # Connect to internal network
+    networks:
+      - club-network
+
+    # Wait for Woodpecker server to be ready
+    depends_on:
+      - woodpecker-server
+
+    # Always restart unless manually stopped
+    restart: unless-stopped
+
 # ============================================================================
 # NAS SERVICES INTEGRATION
 # ============================================================================
@@ -129,7 +257,7 @@ services:
 #
 # Common NAS services:
 #   - Jellyfin (Media): Port 8096
-#   - PhotoPrism (Photos): Port 2342  
+#   - PhotoPrism (Photos): Port 2342
 #   - Nextcloud (Files): Port 8080
 #   - Portainer (Docker): Port 9000
 #   - Grafana (Monitoring): Port 3000
@@ -159,7 +287,19 @@ volumes:
   # Caddy data (SSL certificates, cache)
   caddy_data:
     name: theclub-caddy-data-dev
-  
+
   # Caddy configuration cache
   caddy_config:
     name: theclub-caddy-config-dev
+
+  # Gitea data (repositories, database, attachments)
+  gitea_data:
+    name: theclub-gitea-data-dev
+
+  # Gitea configuration
+  gitea_config:
+    name: theclub-gitea-config-dev
+
+  # Woodpecker CI data (build logs, configuration)
+  woodpecker_data:
+    name: theclub-woodpecker-data-dev

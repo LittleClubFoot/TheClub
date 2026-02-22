@@ -13,7 +13,7 @@
 #
 # ============================================================================
 
-.PHONY: help build run test clean dev docker-dev docker-prod docker-stop deps fmt lint init
+.PHONY: help build run test clean dev docker-dev docker-prod docker-stop deps fmt lint init gitea-setup gitea-logs ci-logs
 
 # Default target - show help
 help:
@@ -34,6 +34,11 @@ help:
 	@echo "🚀 Deployment:"
 	@echo "  docker-prod  Deploy production environment"
 	@echo "  docker-stop  Stop all Docker services"
+	@echo ""
+	@echo "🔧 DevOps (Gitea + Woodpecker CI):"
+	@echo "  gitea-setup  Generate secrets and show setup instructions"
+	@echo "  gitea-logs   View Gitea service logs"
+	@echo "  ci-logs      View Woodpecker CI logs (server + agent)"
 	@echo ""
 	@echo "🛠️  Maintenance:"
 	@echo "  deps         Install/update dependencies"
@@ -190,8 +195,62 @@ logs:
 	 docker compose -f docker-compose.prod.yml logs --tail=50 2>/dev/null || \
 	 echo "No Docker services running"
 
+# ============================================================================
+# DEVOPS TARGETS (Gitea + Woodpecker CI)
+# ============================================================================
+
+# Generate secrets and show Gitea/Woodpecker setup instructions
+gitea-setup:
+	@echo "🔧 Gitea + Woodpecker CI Setup"
+	@echo ""
+	@if [ ! -f .env ]; then \
+		echo "📋 Creating .env from .env.example..."; \
+		cp .env.example .env; \
+		AGENT_SECRET=$$(openssl rand -hex 32); \
+		sed -i "s/^WOODPECKER_AGENT_SECRET=.*/WOODPECKER_AGENT_SECRET=$$AGENT_SECRET/" .env; \
+		echo "✅ Generated WOODPECKER_AGENT_SECRET"; \
+	else \
+		echo "⚠️  .env already exists, skipping generation"; \
+	fi
+	@echo ""
+	@echo "📖 Next steps:"
+	@echo "  1. Start the stack:  make docker-dev"
+	@echo "  2. Open Gitea:       https://localhost/gitea"
+	@echo "  3. Create an admin account in Gitea"
+	@echo "  4. In Gitea: Site Administration > Applications > Create OAuth2 App"
+	@echo "     - Name: Woodpecker CI"
+	@echo "     - Redirect URI: https://localhost/ci/authorize"
+	@echo "  5. Copy Client ID and Secret to .env:"
+	@echo "     - WOODPECKER_GITEA_CLIENT=<client-id>"
+	@echo "     - WOODPECKER_GITEA_SECRET=<client-secret>"
+	@echo "  6. Restart:  make docker-stop && make docker-dev"
+	@echo "  7. Open Woodpecker:  https://localhost/ci"
+	@echo ""
+	@echo "📖 Full guide: docs/GITEA_WOODPECKER.md"
+
+# View Gitea logs
+gitea-logs:
+	@echo "📋 Gitea Logs:"
+	@docker logs theclub-gitea-dev --tail=50 2>/dev/null || \
+	 docker logs theclub-gitea-prod --tail=50 2>/dev/null || \
+	 echo "Gitea is not running"
+
+# View Woodpecker CI logs (server + agent)
+ci-logs:
+	@echo "📋 Woodpecker Server Logs:"
+	@docker logs theclub-woodpecker-server-dev --tail=30 2>/dev/null || \
+	 docker logs theclub-woodpecker-server-prod --tail=30 2>/dev/null || \
+	 echo "Woodpecker server is not running"
+	@echo ""
+	@echo "📋 Woodpecker Agent Logs:"
+	@docker logs theclub-woodpecker-agent-dev --tail=30 2>/dev/null || \
+	 docker logs theclub-woodpecker-agent-prod --tail=30 2>/dev/null || \
+	 echo "Woodpecker agent is not running"
+
 # Health check all services
 health:
 	@echo "🏥 Health Check:"
 	@curl -k -s https://localhost/health 2>/dev/null && echo "✅ Main service healthy" || echo "❌ Main service unhealthy"
 	@curl -k -s https://localhost/test 2>/dev/null >/dev/null && echo "✅ Go server healthy" || echo "❌ Go server unhealthy"
+	@curl -k -s https://localhost/gitea/ 2>/dev/null >/dev/null && echo "✅ Gitea healthy" || echo "❌ Gitea unhealthy"
+	@curl -k -s https://localhost/ci/healthz 2>/dev/null >/dev/null && echo "✅ Woodpecker CI healthy" || echo "❌ Woodpecker CI unhealthy"

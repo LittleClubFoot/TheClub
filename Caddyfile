@@ -31,6 +31,24 @@ localhost {
     }
 
     # ========================================================================
+    # DEVOPS SERVICES - Gitea & Woodpecker CI
+    # ========================================================================
+
+    # Gitea - Self-hosted Git service
+    # Handles repositories, issues, pull requests, and OAuth2
+    handle /gitea* {
+        uri strip_prefix /gitea
+        reverse_proxy gitea:3000
+    }
+
+    # Woodpecker CI - Container-native CI/CD
+    # Handles build pipelines triggered by Gitea webhooks
+    handle /ci* {
+        uri strip_prefix /ci
+        reverse_proxy woodpecker-server:8000
+    }
+
+    # ========================================================================
     # SYNOLOGY NAS SERVICES INTEGRATION (PLANNED FUTURE ENHANCEMENTS)
     # ========================================================================
     # 

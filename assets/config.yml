@@ -63,6 +63,22 @@ services:
         url: "/test/api"
         target: "_self"
 
+  - name: "DevOps"
+    icon: "fas fa-code-branch"
+    items:
+      - name: "Gitea"
+        logo: "assets/icons/dev.png"
+        subtitle: "Self-hosted Git repositories and code review"
+        tag: "git"
+        url: "/gitea"
+        target: "_self"
+      - name: "Woodpecker CI"
+        logo: "assets/icons/dev.png"
+        subtitle: "CI/CD pipelines for automated builds and tests"
+        tag: "ci"
+        url: "/ci"
+        target: "_self"
+
   - name: "Synology NAS Services (Planned)"
     icon: "fas fa-server"
     items:
